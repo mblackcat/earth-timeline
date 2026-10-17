@@ -3,18 +3,19 @@ import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import { Vector3 } from "three";
 import { CATEGORY_STYLE } from "../../components/Timeline/categories";
-import type { HistoricalEvent } from "../../data/schema";
-import { useSceneStore } from "../../state/sceneStore";
+import type { HistoricalEvent, LonLat } from "../../data/schema";
+import { useGeographyStore } from "../../state/geographyStore";
+import { usePaleoPointsStore, useSceneStore } from "../../state/sceneStore";
+import { eventPositionInFrame, frameFor } from "../../simulation/paleoPositions";
 import { useSelectionStore } from "../../state/selectionStore";
-import { eventAnchorLonLat, type EventEmphasis } from "../../simulation/VisibilityResolver";
+import type { EventEmphasis } from "../../simulation/VisibilityResolver";
 import { lonLatToXYZ } from "../../utils/geo";
 
 const MARKER_RADIUS = 1.006;
 /** 标记所在法线与视线夹角的余弦低于该值时隐藏（转到地球背面）。 */
 const HIDE_BELOW_DOT = 0.12;
 
-function Marker({ event, emphasis }: { event: HistoricalEvent; emphasis: EventEmphasis }) {
-  const lonLat = eventAnchorLonLat(event)!;
+function Marker({ event, emphasis, lonLat }: { event: HistoricalEvent; emphasis: EventEmphasis; lonLat: LonLat }) {
   const position = lonLatToXYZ(lonLat[0], lonLat[1], MARKER_RADIUS);
   const normal = new Vector3(...position).normalize();
   const elRef = useRef<HTMLDivElement>(null);
@@ -51,16 +52,19 @@ function Marker({ event, emphasis }: { event: HistoricalEvent; emphasis: EventEm
   );
 }
 
-/** 当前时间附近的历史事件在地球上的标记（有位置的事件）。全球事件显示在场景左上角列表中。 */
+/** 当前时间附近的历史事件在地球上的标记（有位置的事件，按当前地理切片的参考系放置）。全球事件显示在场景左上角列表中。 */
 export function EventMarkers() {
   const events = useSceneStore((s) => s.visible.events);
+  const paleo = usePaleoPointsStore((s) => s.data);
+  const reconstructionMa = useGeographyStore((s) => s.slice?.reconstructionMa);
+  const frame = frameFor(reconstructionMa);
   return (
     <group name="event-markers">
-      {events
-        .filter(({ event }) => eventAnchorLonLat(event))
-        .map(({ event, emphasis }) => (
-          <Marker key={event.id} event={event} emphasis={emphasis} />
-        ))}
+      {events.map(({ event, emphasis }) => {
+        // 与海岸线同一参考系；该年代没有重建位置时不在地球上标注（仍出现在"此时期"列表中）
+        const lonLat = eventPositionInFrame(event, frame, paleo);
+        return lonLat ? <Marker key={`${event.id}@${lonLat.join(",")}`} event={event} emphasis={emphasis} lonLat={lonLat} /> : null;
+      })}
     </group>
   );
 }

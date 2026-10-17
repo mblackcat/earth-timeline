@@ -30,15 +30,21 @@ export function GeographyCaption() {
           <div className="geo-line">{slice.note}</div>
           <div className="geo-line geo-source">
             来源：
-            {slice.sourceIds.map((id) => {
+            {slice.sourceIds.map((id, i) => {
               const src = getSource(id);
-              if (!src) return <span key={id}>{id}（未登记）</span>;
-              return src.url ? (
-                <a key={id} href={src.url} target="_blank" rel="noreferrer">
-                  {src.title}
-                </a>
-              ) : (
-                <span key={id}>{src.title}</span>
+              const sep = i > 0 ? "；" : "";
+              if (!src) return <span key={id}>{sep}{id}（未登记）</span>;
+              return (
+                <span key={id}>
+                  {sep}
+                  {src.url ? (
+                    <a href={src.url} target="_blank" rel="noreferrer">
+                      {src.title}
+                    </a>
+                  ) : (
+                    src.title
+                  )}
+                </span>
               );
             })}
           </div>

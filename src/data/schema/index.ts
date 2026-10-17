@@ -137,6 +137,20 @@ export interface PaleoGeographySlice {
   evidenceLevel: EvidenceLevel;
   sourceIds: string[];
   note: string;
+  /** 板块重建切片：重建所对应的年代（Ma）。化石点与事件位置按同一年代旋转。 */
+  reconstructionMa?: number;
+}
+
+/** 化石点 / 事件位置旋转到各重建年代后的坐标（scripts/fetch-paleogeography.mjs 生成）。 */
+export interface PaleoPointsFile {
+  format: "ett-paleo-points/1";
+  model: string;
+  sourceIds: string[];
+  generated: string;
+  /** species[id][重建年代 Ma] = 与 FossilSitesFile.sites 一一对应的古坐标（无法重建的点为 null）。 */
+  species: Record<string, Record<string, (LonLat | null)[]>>;
+  /** events[id][重建年代 Ma] = 事件标注点的古坐标。 */
+  events: Record<string, Record<string, LonLat | null>>;
 }
 
 /** `dataUrl` 指向的文件格式。 */

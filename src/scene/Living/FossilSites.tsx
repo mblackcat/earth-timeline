@@ -1,7 +1,9 @@
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import { BufferAttribute, BufferGeometry, Color, Vector3 } from "three";
-import { useFossilSitesStore, useSceneStore } from "../../state/sceneStore";
+import { useGeographyStore } from "../../state/geographyStore";
+import { useFossilSitesStore, usePaleoPointsStore, useSceneStore } from "../../state/sceneStore";
+import { frameFor, speciesSitesInFrame } from "../../simulation/paleoPositions";
 import { useSelectionStore } from "../../state/selectionStore";
 import { useViewStore } from "../../state/viewStore";
 import { lonLatToXYZ } from "../../utils/geo";
@@ -37,21 +39,27 @@ function buildPoints(entries: { id: string; sites: [number, number][] }[]): Buil
 }
 
 /**
- * 可见物种的化石点（PBDB，现代坐标）。
+ * 可见物种的化石点（PBDB）。板块重建时期显示旋转后的古位置，全新世显示现代位置。
  * 仅在可见物种集合变化时重建几何体；选中物种的点放大显示。
  */
 export function FossilSites() {
   const species = useSceneStore((s) => s.visible.species);
   const data = useFossilSitesStore((s) => s.data);
+  const paleo = usePaleoPointsStore((s) => s.data);
+  const reconstructionMa = useGeographyStore((s) => s.slice?.reconstructionMa);
   const selectedId = useSelectionStore((s) => s.selectedSpeciesId);
   const selectSpecies = useSelectionStore((s) => s.selectSpecies);
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
 
-  const entries = useMemo(
-    () => (data ? species.map((s) => ({ id: s.id, sites: data.species[s.id]?.sites ?? [] })).filter((e) => e.sites.length) : []),
-    [species, data],
-  );
+  // 化石点与海岸线始终使用同一参考系：重建切片下用古坐标，否则用现代坐标。
+  const entries = useMemo(() => {
+    if (!data) return [];
+    const frame = frameFor(reconstructionMa);
+    return species
+      .map((s) => ({ id: s.id, sites: speciesSitesInFrame(s.id, data.species[s.id]?.sites ?? [], frame, paleo) }))
+      .filter((e) => e.sites.length);
+  }, [species, data, paleo, reconstructionMa]);
   const all = useMemo(() => buildPoints(entries), [entries]);
   const selected = useMemo(() => buildPoints(entries.filter((e) => e.id === selectedId)), [entries, selectedId]);
   useEffect(() => () => all.geometry.dispose(), [all]);

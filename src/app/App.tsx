@@ -9,7 +9,8 @@ import { GeographyCaption } from "../scene/EarthScene/GeographyCaption";
 import { startTimeRuntime } from "../timeline/runtime";
 import { loadReferenceCoastline, startGeographySync } from "../state/geographyStore";
 import { PALEO_SLICES } from "../data/geology/slices";
-import { loadFossilSites, startVisibilitySync } from "../state/sceneStore";
+import { loadFossilSites, loadPaleoPoints, startVisibilitySync } from "../state/sceneStore";
+import { PALEO_POINTS_URL } from "../data/geology/reconstruction";
 import { fetchStaticJson } from "../data/fetchStatic";
 import { NowPanel } from "../components/Scene/NowPanel";
 import { DetailsCard } from "../components/Scene/DetailsCard";
@@ -28,6 +29,7 @@ export function App() {
   }, []);
   useEffect(() => {
     void loadFossilSites(fetchStaticJson);
+    void loadPaleoPoints(PALEO_POINTS_URL, fetchStaticJson);
   }, []);
 
   return (

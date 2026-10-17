@@ -39,7 +39,8 @@ describe("PaleoGeographyProvider.resolve", () => {
   it("does not present the modern coastline as deep-time geography", () => {
     const p = new PaleoGeographyProvider(PALEO_SLICES);
     expect(p.resolve(0).slice?.kind).toBe("modern-schematic");
-    expect(p.resolve(252e6).slice).toBeNull();
+    // 深时只能解析到板块重建切片（或无数据），绝不能是现代海岸线
+    for (const t of [20_000, 252e6, 1e9, 2.5e9]) expect(p.resolve(t).slice?.kind).not.toBe("modern-schematic");
     expect(PALEO_SLICES.every((s) => s.kind !== "modern-schematic" || s.isSchematic)).toBe(true);
   });
 });

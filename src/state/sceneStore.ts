@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { EVENTS } from "../data/events";
-import type { FossilSitesFile, HistoricalEvent, Species } from "../data/schema";
+import type { FossilSitesFile, HistoricalEvent, PaleoPointsFile, Species } from "../data/schema";
 import { SPECIES } from "../data/species";
 import { resolveVisible, visibleSetKey, type VisibleSet } from "../simulation/VisibilityResolver";
 import { useSelectionStore } from "./selectionStore";
@@ -98,5 +98,36 @@ export async function loadFossilSites(
     store.setState({ loadState: "ready", data });
   } catch (err) {
     store.setState({ loadState: "error", error: err instanceof Error ? err.message : String(err) });
+  }
+}
+
+// ───────────── 古坐标（板块重建后的化石点 / 事件位置） ─────────────
+
+export const usePaleoPointsStore = create<{ loadState: FossilSitesState["loadState"]; data: PaleoPointsFile | null }>()(() => ({
+  loadState: "idle",
+  data: null,
+}));
+
+export function parsePaleoPoints(raw: unknown): PaleoPointsFile {
+  const f = raw as PaleoPointsFile;
+  if (!f || f.format !== "ett-paleo-points/1" || typeof f.species !== "object" || typeof f.events !== "object") {
+    throw new Error("古坐标数据格式不正确");
+  }
+  return f;
+}
+
+/** 加载古坐标。失败时保持 error 状态：重建切片下化石点与事件标记不显示，而不是退回现代坐标。 */
+export async function loadPaleoPoints(
+  url: string,
+  fetchJson: (url: string) => Promise<unknown>,
+  store: typeof usePaleoPointsStore = usePaleoPointsStore,
+): Promise<void> {
+  const s = store.getState();
+  if (s.loadState === "ready" || s.loadState === "loading") return;
+  store.setState({ loadState: "loading" });
+  try {
+    store.setState({ loadState: "ready", data: parsePaleoPoints(await fetchJson(url)) });
+  } catch {
+    store.setState({ loadState: "error" });
   }
 }

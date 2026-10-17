@@ -77,3 +77,16 @@ describe("fossil site loading", () => {
     expect(useFossilSitesStore.getState().loadState).toBe("error");
   });
 });
+
+describe("paleo points loading", () => {
+  it("parses valid data and keeps an error state on failure", async () => {
+    const { loadPaleoPoints, usePaleoPointsStore } = await import("./sceneStore");
+    usePaleoPointsStore.setState({ loadState: "idle", data: null });
+    await loadPaleoPoints("x", async () => {
+      throw new Error("offline");
+    });
+    expect(usePaleoPointsStore.getState()).toMatchObject({ loadState: "error", data: null });
+    await loadPaleoPoints("x", async () => ({ format: "ett-paleo-points/1", model: "m", sourceIds: [], generated: "", species: {}, events: {} }));
+    expect(usePaleoPointsStore.getState().loadState).toBe("ready");
+  });
+});

@@ -5,28 +5,18 @@
 //   1. 只保留年代中值（(eag + lag) / 2）落在该物种展示年代范围内的记录，剔除误归类的离群记录；
 //   2. 坐标四舍五入到 0.5° 后去重（化石点为现代经纬度）；
 //   3. 每个物种最多保留 MAX_SITES 个点（按坐标排序后等间隔抽样，结果可复现）。
-// 年代范围必须与 SPECIES 中的 time 一致，src/data/species/species.test.ts 会校验。
+// 年代范围直接读取 src/data/species/index.ts；species.test.ts 校验生成文件与物种数据一致。
 import { writeFile } from "node:fs/promises";
+import { loadTs } from "./load-ts.mjs";
 
 const MAX_SITES = 400;
 const OUT = new URL("../public/data/species/pbdb-sites.json", import.meta.url);
 
-/** id → [PBDB 名称, fromMa, toMa] */
-const TAXA = {
-  trilobita: ["Trilobita", 521, 251.902],
-  haikouichthys: ["Haikouichthys", 521, 514.5],
-  cooksonia: ["Cooksonia", 432.9, 406.5],
-  dunkleosteus: ["Dunkleosteus", 385.1, 365.5],
-  ichthyostega: ["Ichthyostega", 372.15, 358.86],
-  eryops: ["Eryops", 301.3, 278.5],
-  "tyrannosaurus-rex": ["Tyrannosaurus rex", 72.2, 66.0],
-  pteranodon: ["Pteranodon", 86.7, 77.9],
-  morganucodon: ["Morganucodon", 203.6, 166.8],
-  "mammuthus-primigenius": ["Mammuthus primigenius", 0.774, 0.00405],
-  "australopithecus-afarensis": ["Australopithecus afarensis", 3.7, 3.0],
-  "homo-erectus": ["Homo erectus", 2.04, 0.108],
-  "homo-sapiens": ["Homo sapiens", 0.315, 0],
-};
+const { SPECIES, PBDB_NAMES } = await loadTs("/src/data/species/index.ts");
+/** id → [PBDB 名称, fromMa, toMa]（直接取自物种数据，避免两处维护） */
+const TAXA = Object.fromEntries(
+  SPECIES.map((s) => [s.id, [PBDB_NAMES[s.id], s.time.fromYearsAgo / 1e6, s.time.toYearsAgo / 1e6]]),
+);
 
 const round = (v) => Math.round(v * 2) / 2;
 

@@ -4,7 +4,9 @@ import type { EvidenceLevel, Source, SpatialExtent } from "../../data/schema";
 import { getSource } from "../../data/sources";
 import { HABITAT_LABELS, SPECIES_BY_ID } from "../../data/species";
 import { focusEventOnGlobe, focusSpeciesOnGlobe, jumpToEvent } from "../../state/actions";
-import { useFossilSitesStore } from "../../state/sceneStore";
+import { useGeographyStore } from "../../state/geographyStore";
+import { useFossilSitesStore, usePaleoPointsStore } from "../../state/sceneStore";
+import { frameFor, speciesSitesInFrame } from "../../simulation/paleoPositions";
 import { useSelectionStore } from "../../state/selectionStore";
 import { SPECIES_COLORS } from "../../scene/Living/speciesColors";
 import { eventAnchorLonLat } from "../../simulation/VisibilityResolver";
@@ -90,7 +92,11 @@ function EventDetail({ id }: { id: string }) {
 function SpeciesDetail({ id }: { id: string }) {
   const sp = SPECIES_BY_ID[id];
   const sites = useFossilSitesStore((s) => s.data?.species[id]);
+  const paleo = usePaleoPointsStore((s) => s.data);
+  const reconstructionMa = useGeographyStore((s) => s.slice?.reconstructionMa);
   if (!sp) return <p className="detail-missing">未找到物种数据：{id}</p>;
+  const frame = frameFor(reconstructionMa);
+  const shown = sites ? speciesSitesInFrame(id, sites.sites, frame, paleo).length : 0;
   return (
     <>
       <div className="detail-kicker" style={{ color: SPECIES_COLORS[id] }}>
@@ -106,16 +112,18 @@ function SpeciesDetail({ id }: { id: string }) {
       <div className="detail-row">栖息环境：{sp.habitatIds.map((h) => HABITAT_LABELS[h]).join("、")}</div>
       <div className="detail-row">
         分布：
-        {sites
-          ? `${sites.sites.length} 个化石点（${sites.occurrences} 条 PBDB 记录，现代坐标，不是当时的古地理位置）`
-          : "化石点数据尚未加载"}
+        {!sites
+          ? "化石点数据尚未加载"
+          : frame.kind === "paleo"
+            ? `${sites.sites.length} 个化石点（${sites.occurrences} 条 PBDB 记录），已按板块重建旋转到 ${frame.ma} Ma 的位置，其中 ${shown} 个可重建`
+            : `${sites.sites.length} 个化石点（${sites.occurrences} 条 PBDB 记录，现代坐标）`}
       </div>
       <div className="detail-row">
         <span className={`evidence ${sp.evidenceLevel}`}>{EVIDENCE_LABELS[sp.evidenceLevel]}</span>
         <span className="detail-note">{sp.evidenceNote}</span>
       </div>
       <div className="detail-actions">
-        {sites && sites.sites.length > 0 && (
+        {shown > 0 && (
           <button type="button" onClick={() => focusSpeciesOnGlobe(id)} data-testid="detail-focus">
             在地球上定位
           </button>

@@ -152,6 +152,20 @@ export const SOURCES: Record<string, Source> = {
     accessed: "2026-10-17",
     note: "通过 data1.2 API（occs/list）获取，由 scripts/fetch-pbdb-sites.mjs 生成 public/data/species/pbdb-sites.json。坐标为化石点的现代经纬度。",
   },
+  "cao-2024": {
+    id: "cao-2024",
+    title: "Cao, X. et al. (2024). Earth's tectonic and plate boundary evolution over 1.8 billion years. Geoscience Frontiers 15: 101922.",
+    url: doi("10.1016/j.gsf.2024.101922"),
+    license: "模型数据 CC BY 4.0（Zenodo 10.5281/zenodo.11536686）",
+    note: "0–1800 Ma 板块重建模型；10 亿年以内沿用 Merdith et al. (2021) 的重建。",
+  },
+  "gplates-web-service": {
+    id: "gplates-web-service",
+    title: "GPlates Web Service（EarthByte / The University of Sydney）",
+    url: "https://gwsdoc.gplates.org/",
+    accessed: "2026-10-17",
+    note: "通过 reconstruct/coastlines 与 reconstruct/reconstruct_points 接口获取 CAO2024 模型的重建结果，由 scripts/fetch-paleogeography.mjs 生成静态文件。",
+  },
   "project-baseline": {
     id: "project-baseline",
     title: "本项目时间约定：yearsAgo = 0 对应公元 2000 年初（b2k）",
