@@ -347,6 +347,51 @@ input:focus-visible {
   color: var(--muted);
 }
 
+/* 近距离观察窗 */
+.specimen {
+  position: absolute;
+  inset: 40px 60px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: rgba(8, 12, 20, 0.97);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+.specimen-head {
+  position: relative;
+  padding: 10px 40px 8px 14px;
+  border-bottom: 1px solid var(--panel-border);
+  font-size: 14px;
+}
+.specimen-meta {
+  margin-left: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.specimen-canvas {
+  flex: 1;
+  min-height: 0;
+}
+.specimen-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--panel-border);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.specimen-note {
+  margin-left: auto;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .geo-title {
   font-weight: 600;
   margin-bottom: 2px;

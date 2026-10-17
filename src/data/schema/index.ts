@@ -113,13 +113,34 @@ export interface FossilSitesFile {
   >;
 }
 
+/** 程序化低多边形模型的体型原型（scene/Models 中各有一个构建器）。 */
+export type ModelArchetype = "trilobite" | "fish" | "plant" | "quadruped" | "theropod" | "pterosaur" | "hominin";
+
+export type AnimationClipName = "idle" | "move" | "eat";
+
+/**
+ * 视觉表现（与科学记录分离，PLAN §2.2 / §5.1）。
+ * 第一阶段的模型由代码程序化生成，modelPath 预留给将来的外部模型文件。
+ */
 export interface VisualizationAsset {
   id: string;
   type: "terrain" | "plant" | "animal" | "human" | "building" | "effect";
+  archetype: ModelArchetype;
+  /** 体长（或株高），米。观察窗使用真实尺度。 */
+  sizeM: number;
+  /** 主体色与强调色。 */
+  color: string;
+  accent: string;
+  /** 原型的形态参数（0–1 或倍数），各构建器自行解释。 */
+  params?: Record<string, number>;
   modelPath?: string;
-  animationSet?: string[];
+  animationSet: AnimationClipName[];
+  /** 移动方式，决定"移动"动画。 */
+  locomotion: "crawl" | "swim" | "walk" | "fly" | "none";
   preferredLod: 0 | 1 | 2;
   style: "wireframe" | "solid" | "hybrid";
+  /** 外形的说明：程序化模型是示意性的，不是精确复原。 */
+  note: string;
 }
 
 /**

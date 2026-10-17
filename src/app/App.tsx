@@ -14,6 +14,7 @@ import { PALEO_POINTS_URL } from "../data/geology/reconstruction";
 import { fetchStaticJson } from "../data/fetchStatic";
 import { NowPanel } from "../components/Scene/NowPanel";
 import { DetailsCard } from "../components/Scene/DetailsCard";
+import { SpecimenViewer } from "../components/Specimen/SpecimenViewer";
 import { useSettingsStore } from "../state/settingsStore";
 import { ErrorBoundary } from "./ErrorBoundary";
 
@@ -50,6 +51,7 @@ export function App() {
         <GeographyCaption />
         <NowPanel />
         <DetailsCard />
+        <SpecimenViewer />
       </main>
       <SettingsPanel />
       <footer className="timeline-region" data-testid="timeline-region">

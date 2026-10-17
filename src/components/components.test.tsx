@@ -54,6 +54,30 @@ describe("SettingsPanel", () => {
   });
 });
 
+describe("Visual and animation settings", () => {
+  it("apply to the settings store without touching time or camera", () => {
+    useSettingsStore.setState({ panelOpen: true });
+    render(<SettingsPanel />);
+    const before = { t: useTimeStore.getState().currentTimeYearsAgo, cam: useViewStore.getState().command };
+    fireEvent.change(screen.getByTestId("visual-style"), { target: { value: "wireframe" } });
+    fireEvent.change(screen.getByTestId("model-detail"), { target: { value: "low" } });
+    fireEvent.click(screen.getByTestId("toggle-animations"));
+    fireEvent.click(screen.getByTestId("toggle-idle-paused"));
+    fireEvent.click(screen.getByTestId("toggle-behavior"));
+    fireEvent.click(screen.getByTestId("toggle-low-perf"));
+    expect(useSettingsStore.getState()).toMatchObject({
+      visualStyle: "wireframe",
+      modelDetail: "low",
+      animationsEnabled: false,
+      idleWhenPaused: false,
+      behaviorEnabled: false,
+      lowPerformance: true,
+    });
+    expect(useTimeStore.getState().currentTimeYearsAgo).toBe(before.t);
+    expect(useViewStore.getState().command).toBe(before.cam);
+  });
+});
+
 describe("Help", () => {
   it("opens from the top bar and closes with Escape", () => {
     render(<TopBar />);

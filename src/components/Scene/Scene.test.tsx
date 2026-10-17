@@ -15,7 +15,7 @@ beforeEach(() => {
   timeEngine.pause();
   timeEngine.seek(68e6);
   useSettingsStore.setState({ showEventMarkers: true, showFossilSites: true });
-  useSelectionStore.setState({ selectedEventId: null, selectedSpeciesId: null, detail: null });
+  useSelectionStore.setState({ selectedEventId: null, selectedSpeciesId: null, detail: null, specimenId: null });
   useFossilSitesStore.setState({
     loadState: "ready",
     error: null,
@@ -84,6 +84,17 @@ describe("DetailsCard", () => {
       timeEngine.seek(10e6);
     });
     expect(screen.queryByTestId("details-card")).toBeNull();
+  });
+
+  it("opens the close-up viewer, which closes when the species leaves its time range", () => {
+    render(<DetailsCard />);
+    act(() => useSelectionStore.getState().selectSpecies("tyrannosaurus-rex"));
+    fireEvent.click(screen.getByTestId("detail-specimen"));
+    expect(useSelectionStore.getState().specimenId).toBe("tyrannosaurus-rex");
+    act(() => {
+      timeEngine.seek(10e6);
+    });
+    expect(useSelectionStore.getState().specimenId).toBeNull();
   });
 
   it("does not crash on unknown ids", () => {

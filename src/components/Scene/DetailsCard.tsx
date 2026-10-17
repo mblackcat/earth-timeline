@@ -91,6 +91,7 @@ function EventDetail({ id }: { id: string }) {
 
 function SpeciesDetail({ id }: { id: string }) {
   const sp = SPECIES_BY_ID[id];
+  const openSpecimen = useSelectionStore((s) => s.openSpecimen);
   const sites = useFossilSitesStore((s) => s.data?.species[id]);
   const paleo = usePaleoPointsStore((s) => s.data);
   const reconstructionMa = useGeographyStore((s) => s.slice?.reconstructionMa);
@@ -123,6 +124,11 @@ function SpeciesDetail({ id }: { id: string }) {
         <span className="detail-note">{sp.evidenceNote}</span>
       </div>
       <div className="detail-actions">
+        {sp.visualizationId && (
+          <button type="button" onClick={() => openSpecimen(id)} data-testid="detail-specimen">
+            近距离观察
+          </button>
+        )}
         {shown > 0 && (
           <button type="button" onClick={() => focusSpeciesOnGlobe(id)} data-testid="detail-focus">
             在地球上定位

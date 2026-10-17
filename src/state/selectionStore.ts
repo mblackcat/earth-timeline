@@ -13,6 +13,10 @@ export interface SelectionState {
   selectEvent: (id: string | null) => void;
   selectSpecies: (id: string | null) => void;
   closeDetail: () => void;
+  /** "近距离观察"窗口中的物种。 */
+  specimenId: string | null;
+  openSpecimen: (id: string) => void;
+  closeSpecimen: () => void;
 }
 
 export const useSelectionStore = create<SelectionState>()((set) => ({
@@ -22,4 +26,7 @@ export const useSelectionStore = create<SelectionState>()((set) => ({
   selectEvent: (selectedEventId) => set({ selectedEventId, detail: selectedEventId ? "event" : null }),
   selectSpecies: (selectedSpeciesId) => set({ selectedSpeciesId, detail: selectedSpeciesId ? "species" : null }),
   closeDetail: () => set({ detail: null }),
+  specimenId: null,
+  openSpecimen: (specimenId) => set({ specimenId }),
+  closeSpecimen: () => set({ specimenId: null }),
 }));

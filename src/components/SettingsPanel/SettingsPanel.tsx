@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useSettingsStore } from "../../state/settingsStore";
 import { PlaybackSettings } from "./PlaybackSettings";
+import { VisualSettings } from "./VisualSettings";
 
 /** 可折叠分组（原生 <details>，默认展开）。 */
 function Group({ title, testId, children }: { title: string; testId: string; children: ReactNode }) {
@@ -128,6 +129,7 @@ export function SettingsPanel() {
               </label>
             </div>
           </Group>
+          <VisualSettings Group={Group} />
         </div>
       )}
     </aside>

@@ -51,6 +51,7 @@ export const PBDB_NAMES: Record<string, string> = {
 export const SPECIES: Species[] = [
   {
     id: "trilobita",
+    visualizationId: "viz-trilobite",
     scientificName: "Trilobita",
     commonName: "三叶虫",
     rank: "class",
@@ -65,6 +66,7 @@ export const SPECIES: Species[] = [
   },
   {
     id: "haikouichthys",
+    visualizationId: "viz-haikouichthys",
     scientificName: "Haikouichthys ercaicunensis",
     commonName: "海口鱼",
     rank: "species",
@@ -79,6 +81,7 @@ export const SPECIES: Species[] = [
   },
   {
     id: "cooksonia",
+    visualizationId: "viz-cooksonia",
     scientificName: "Cooksonia",
     commonName: "库克逊蕨",
     rank: "genus",
@@ -93,6 +96,7 @@ export const SPECIES: Species[] = [
   },
   {
     id: "dunkleosteus",
+    visualizationId: "viz-dunkleosteus",
     scientificName: "Dunkleosteus",
     commonName: "邓氏鱼",
     rank: "genus",
@@ -107,6 +111,7 @@ export const SPECIES: Species[] = [
   },
   {
     id: "ichthyostega",
+    visualizationId: "viz-ichthyostega",
     scientificName: "Ichthyostega",
     commonName: "鱼石螈",
     rank: "genus",
@@ -121,6 +126,7 @@ export const SPECIES: Species[] = [
   },
   {
     id: "eryops",
+    visualizationId: "viz-eryops",
     scientificName: "Eryops",
     commonName: "引螈",
     rank: "genus",
@@ -135,6 +141,7 @@ export const SPECIES: Species[] = [
   },
   {
     id: "tyrannosaurus-rex",
+    visualizationId: "viz-tyrannosaurus",
     scientificName: "Tyrannosaurus rex",
     commonName: "霸王龙",
     rank: "species",
@@ -149,6 +156,7 @@ export const SPECIES: Species[] = [
   },
   {
     id: "pteranodon",
+    visualizationId: "viz-pteranodon",
     scientificName: "Pteranodon",
     commonName: "无齿翼龙",
     rank: "genus",
@@ -163,6 +171,7 @@ export const SPECIES: Species[] = [
   },
   {
     id: "morganucodon",
+    visualizationId: "viz-morganucodon",
     scientificName: "Morganucodon",
     commonName: "摩根齿兽",
     rank: "genus",
@@ -177,6 +186,7 @@ export const SPECIES: Species[] = [
   },
   {
     id: "mammuthus-primigenius",
+    visualizationId: "viz-mammoth",
     scientificName: "Mammuthus primigenius",
     commonName: "真猛犸象（长毛象）",
     rank: "species",
@@ -192,6 +202,7 @@ export const SPECIES: Species[] = [
   },
   {
     id: "australopithecus-afarensis",
+    visualizationId: "viz-afarensis",
     scientificName: "Australopithecus afarensis",
     commonName: "南方古猿阿法种",
     rank: "species",
@@ -206,6 +217,7 @@ export const SPECIES: Species[] = [
   },
   {
     id: "homo-erectus",
+    visualizationId: "viz-erectus",
     scientificName: "Homo erectus",
     commonName: "直立人",
     rank: "species",
@@ -220,6 +232,7 @@ export const SPECIES: Species[] = [
   },
   {
     id: "homo-sapiens",
+    visualizationId: "viz-sapiens",
     scientificName: "Homo sapiens",
     commonName: "智人",
     rank: "species",

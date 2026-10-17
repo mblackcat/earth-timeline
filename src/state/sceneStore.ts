@@ -51,6 +51,8 @@ export function startVisibilitySync({
     if (sel.selectedSpeciesId && !visible.species.some((s) => s.id === sel.selectedSpeciesId)) {
       selectionStore.setState({ selectedSpeciesId: null, detail: sel.detail === "species" ? null : sel.detail });
     }
+    // 观察窗中的生物同样不能出现在其生存范围之外
+    if (sel.specimenId && !visible.species.some((s) => s.id === sel.specimenId)) selectionStore.setState({ specimenId: null });
   };
   apply();
   const offTime = timeStore.subscribe((s, p) => {
