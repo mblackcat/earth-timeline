@@ -5,5 +5,7 @@ export const PALETTE = {
   graticuleMinor: "#1f3a52",
   graticuleMajor: "#3d6f8f",
   coastline: "#4fd1c5",
+  /** 现代海岸线参考层（深时定位用，刻意弱化）。 */
+  referenceCoastline: "#566273",
   atmosphere: "#2a9df4",
 } as const;

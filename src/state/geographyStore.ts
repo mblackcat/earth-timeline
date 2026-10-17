@@ -72,3 +72,24 @@ export function startGeographySync(
     unsubscribe();
   };
 }
+
+// ───────────── 现代海岸线参考层 ─────────────
+
+/**
+ * 深时下的定位参考：化石点使用现代坐标，因此用暗色现代海岸线帮助辨认位置。
+ * 只作参考，场景中必须与古地理轮廓明显区分并在说明中注明（PLAN §3.3.3）。
+ */
+export const useReferenceCoastlineStore = create<{ outlines: LonLat[][] | null }>()(() => ({ outlines: null }));
+
+export async function loadReferenceCoastline(
+  provider: PaleoGeographyProvider,
+  slice: PaleoGeographySlice,
+  store = useReferenceCoastlineStore,
+): Promise<void> {
+  try {
+    const data = await provider.load(slice);
+    store.setState({ outlines: data.outlines });
+  } catch {
+    // 参考层是可选的：加载失败时不显示，不影响其他内容
+  }
+}

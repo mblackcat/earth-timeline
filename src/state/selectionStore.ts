@@ -6,10 +6,20 @@ import { create } from "zustand";
  */
 export interface SelectionState {
   selectedEventId: string | null;
+  /** 选中的对象（物种）。时间变化导致其不可见时由可见性同步清除。 */
+  selectedSpeciesId: string | null;
+  /** 详情浮层当前显示哪一类。 */
+  detail: "event" | "species" | null;
   selectEvent: (id: string | null) => void;
+  selectSpecies: (id: string | null) => void;
+  closeDetail: () => void;
 }
 
 export const useSelectionStore = create<SelectionState>()((set) => ({
   selectedEventId: null,
-  selectEvent: (selectedEventId) => set({ selectedEventId }),
+  selectedSpeciesId: null,
+  detail: null,
+  selectEvent: (selectedEventId) => set({ selectedEventId, detail: selectedEventId ? "event" : null }),
+  selectSpecies: (selectedSpeciesId) => set({ selectedSpeciesId, detail: selectedSpeciesId ? "species" : null }),
+  closeDetail: () => set({ detail: null }),
 }));

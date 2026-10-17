@@ -1,4 +1,4 @@
-import { MODERN_BASELINE_CE_YEAR } from "../data/schema";
+import { MODERN_BASELINE_CE_YEAR, type TimeRange } from "../data/schema";
 
 export { MODERN_BASELINE_CE_YEAR };
 
@@ -76,4 +76,17 @@ export function formatYearsSpan(years: number): string {
   if (abs >= 1e6) return `${trimNumber(years / 1e6, 2)} 百万年`;
   if (abs >= 1e3) return `${trimNumber(years / 1e3, 2)} 千年`;
   return `${trimNumber(years, 3)} 年`;
+}
+
+/** 年代范围文本：瞬时 / 区间（终点为现代时写"至今"），附不确定范围。 */
+export function formatTimeRange(t: TimeRange): string {
+  const instant = t.fromYearsAgo === t.toYearsAgo;
+  const end = t.toYearsAgo === 0 ? "至今" : formatTime(t.toYearsAgo);
+  const main = instant ? formatTime(t.fromYearsAgo) : `${formatTime(t.fromYearsAgo)} — ${end}`;
+  const older = t.uncertaintyYears?.older ?? 0;
+  const younger = t.uncertaintyYears?.younger ?? 0;
+  if (older === 0 && younger === 0) return main;
+  if (instant || older === younger) return `${main}（${instant ? "" : "两端 "}± ${formatYearsSpan(older || younger)}）`;
+  const parts = [older ? `起点 ± ${formatYearsSpan(older)}` : "", younger ? `终点 ± ${formatYearsSpan(younger)}` : ""].filter(Boolean);
+  return `${main}（${parts.join("，")}）`;
 }

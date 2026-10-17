@@ -69,19 +69,48 @@ export interface HistoricalEvent {
   isSample?: boolean;
 }
 
+export type HabitatId = "marine" | "freshwater" | "coastal" | "terrestrial" | "forest" | "steppe" | "wetland";
+
 export interface Species {
   id: string;
+  /** 学名；高级分类单元（如三叶虫纲）也可作为代表性类群。 */
   scientificName: string;
   commonName: string;
+  /** 分类等级说明，例如"纲"、"属"、"种"。 */
+  rank: "class" | "genus" | "species";
+  description: string;
   /** 用于展示的近似生存范围，不代表精确起源/灭绝时间。 */
   time: TimeRange;
   taxonomy?: { kingdom?: string; class?: string; order?: string; family?: string };
-  habitatIds: string[];
+  habitatIds: HabitatId[];
   distribution: SpatialExtent[];
-  visualizationId: string;
+  /** Phase 6 接入低多边形模型后填写。 */
+  visualizationId?: string;
   evidenceLevel: EvidenceLevel;
+  /** 年代范围的取得方式与不确定性说明。 */
+  evidenceNote: string;
   sourceIds: string[];
   isSample?: boolean;
+}
+
+/** 化石点数据文件（由 scripts/fetch-pbdb-sites.mjs 生成）。 */
+export interface FossilSitesFile {
+  format: "ett-fossil-sites/1";
+  sourceId: string;
+  generated: string;
+  note: string;
+  species: Record<
+    string,
+    {
+      pbdbName: string;
+      /** 生成时使用的年代过滤范围（Ma），应与 Species.time 一致。 */
+      filterMa: [fromMa: number, toMa: number];
+      /** 匹配到的 PBDB 化石记录数（去重前）。 */
+      occurrences: number;
+      /** 去重后的化石点（现代经纬度，四舍五入到 0.5°）。 */
+      sites: LonLat[];
+    }
+  >;
 }
 
 export interface VisualizationAsset {

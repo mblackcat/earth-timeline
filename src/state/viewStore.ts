@@ -1,12 +1,20 @@
 import { create } from "zustand";
 import type { SpatialLevel } from "../utils/geo";
 
-export type CameraCommandKind = "global" | "default";
+export type CameraCommandKind = "global" | "default" | "focus";
+
+/** focus 命令的目标：注视的经纬度与高度（地球半径单位）。 */
+export interface CameraFocusTarget {
+  lon: number;
+  lat: number;
+  altitude?: number;
+}
 
 export interface CameraCommand {
   kind: CameraCommandKind;
   /** 单调递增，用于区分连续发出的同类命令。 */
   id: number;
+  target?: CameraFocusTarget;
 }
 
 /**
@@ -20,7 +28,7 @@ export interface ViewState {
   lon: number;
   lat: number;
   command: CameraCommand | null;
-  requestCamera: (kind: CameraCommandKind) => void;
+  requestCamera: (kind: CameraCommandKind, target?: CameraFocusTarget) => void;
   setView: (v: { altitude: number; level: SpatialLevel; lon: number; lat: number }) => void;
 }
 
@@ -30,6 +38,6 @@ export const useViewStore = create<ViewState>()((set, get) => ({
   lon: 0,
   lat: 0,
   command: null,
-  requestCamera: (kind) => set({ command: { kind, id: (get().command?.id ?? 0) + 1 } }),
+  requestCamera: (kind, target) => set({ command: { kind, id: (get().command?.id ?? 0) + 1, ...(target ? { target } : {}) } }),
   setView: (v) => set(v),
 }));

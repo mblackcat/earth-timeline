@@ -19,6 +19,12 @@ export function SettingsPanel() {
   const setShowGraticule = useSettingsStore((s) => s.setShowGraticule);
   const showOutlines = useSettingsStore((s) => s.showOutlines);
   const setShowOutlines = useSettingsStore((s) => s.setShowOutlines);
+  const showModernReference = useSettingsStore((s) => s.showModernReference);
+  const setShowModernReference = useSettingsStore((s) => s.setShowModernReference);
+  const showEventMarkers = useSettingsStore((s) => s.showEventMarkers);
+  const setShowEventMarkers = useSettingsStore((s) => s.setShowEventMarkers);
+  const showFossilSites = useSettingsStore((s) => s.showFossilSites);
+  const setShowFossilSites = useSettingsStore((s) => s.setShowFossilSites);
   const timelineScale = useSettingsStore((s) => s.timelineScale);
   const setTimelineScale = useSettingsStore((s) => s.setTimelineScale);
   const timelineFollow = useSettingsStore((s) => s.timelineFollow);
@@ -92,6 +98,33 @@ export function SettingsPanel() {
                   data-testid="toggle-outlines"
                 />
                 大陆轮廓
+              </label>
+              <label className="toggle" title="没有古地理数据的时期，用暗色现代海岸线帮助定位">
+                <input
+                  type="checkbox"
+                  checked={showModernReference}
+                  onChange={(e) => setShowModernReference(e.target.checked)}
+                  data-testid="toggle-reference"
+                />
+                现代海岸线参考（深时）
+              </label>
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={showEventMarkers}
+                  onChange={(e) => setShowEventMarkers(e.target.checked)}
+                  data-testid="toggle-events"
+                />
+                历史事件
+              </label>
+              <label className="toggle">
+                <input
+                  type="checkbox"
+                  checked={showFossilSites}
+                  onChange={(e) => setShowFossilSites(e.target.checked)}
+                  data-testid="toggle-fossils"
+                />
+                代表性生物（化石点）
               </label>
             </div>
           </Group>

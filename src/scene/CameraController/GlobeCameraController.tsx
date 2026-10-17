@@ -19,8 +19,15 @@ import {
 
 const PUBLISH_INTERVAL_MS = 100;
 
+/** 定位到地表某点时的默认高度（约 4,500 km，L0/L1 之间，能看到周边大陆）。 */
+export const FOCUS_ALTITUDE = 0.7;
+
 function commandTarget(cmd: CameraCommand, current: GlobeCameraState): GlobeCameraState {
   if (cmd.kind === "default") return { ...DEFAULT_VIEW };
+  if (cmd.kind === "focus" && cmd.target) {
+    const { lon, lat, altitude = FOCUS_ALTITUDE } = cmd.target;
+    return normalizeState({ ...current, lon, lat, altitude, heading: 0, tilt: 0 });
+  }
   // 返回全球视角：保留当前注视的经纬度，只拉远并取消倾斜/旋转。
   return normalizeState({ ...current, altitude: GLOBAL_ALTITUDE, heading: 0, tilt: 0 });
 }

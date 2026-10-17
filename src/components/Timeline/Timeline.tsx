@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type
 import { EVENTS, eventAnchorYearsAgo } from "../../data/events";
 import type { HistoricalEvent } from "../../data/schema";
 import { GEO_RANKS, GEO_RANK_LABELS, GEO_UNITS, GEO_UNIT_BY_ID, type GeoRank } from "../../data/geology/timescale";
+import { jumpToEvent } from "../../state/actions";
 import { useSelectionStore } from "../../state/selectionStore";
 import { useSettingsStore } from "../../state/settingsStore";
 import { useTimeStore } from "../../state/timeStore";
@@ -115,7 +116,6 @@ export function Timeline({ leading }: { leading?: ReactNode }) {
   const maxYearsAgo = useTimeStore((s) => s.maxYearsAgo);
   const minYearsAgo = useTimeStore((s) => s.minYearsAgo);
   const selectedEventId = useSelectionStore((s) => s.selectedEventId);
-  const selectEvent = useSelectionStore((s) => s.selectEvent);
 
   const scaleKind = useSettingsStore((s) => s.timelineScale);
   const follow = useSettingsStore((s) => s.timelineFollow);
@@ -223,11 +223,6 @@ export function Timeline({ leading }: { leading?: ReactNode }) {
       const unit = GEO_UNIT_BY_ID[d.unitId];
       if (unit) setView(fitView(scale, Math.min(unit.range.fromYearsAgo, maxYearsAgo), unit.range.toYearsAgo));
     }
-  };
-
-  const jumpToEvent = (ev: HistoricalEvent) => {
-    selectEvent(ev.id);
-    timeEngine.seek(eventAnchorYearsAgo(ev));
   };
 
   const zoomCenter = (factor: number) => {

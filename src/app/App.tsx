@@ -7,7 +7,12 @@ import { paleoGeographyProvider } from "../data/geology";
 import { EarthScene } from "../scene/EarthScene/EarthScene";
 import { GeographyCaption } from "../scene/EarthScene/GeographyCaption";
 import { startTimeRuntime } from "../timeline/runtime";
-import { startGeographySync } from "../state/geographyStore";
+import { loadReferenceCoastline, startGeographySync } from "../state/geographyStore";
+import { PALEO_SLICES } from "../data/geology/slices";
+import { loadFossilSites, startVisibilitySync } from "../state/sceneStore";
+import { fetchStaticJson } from "../data/fetchStatic";
+import { NowPanel } from "../components/Scene/NowPanel";
+import { DetailsCard } from "../components/Scene/DetailsCard";
 import { useSettingsStore } from "../state/settingsStore";
 import { ErrorBoundary } from "./ErrorBoundary";
 
@@ -16,6 +21,14 @@ export function App() {
 
   useEffect(() => startTimeRuntime(), []);
   useEffect(() => startGeographySync(paleoGeographyProvider), []);
+  useEffect(() => startVisibilitySync(), []);
+  useEffect(() => {
+    const modern = PALEO_SLICES.find((s) => s.kind === "modern-schematic");
+    if (modern) void loadReferenceCoastline(paleoGeographyProvider, modern);
+  }, []);
+  useEffect(() => {
+    void loadFossilSites(fetchStaticJson);
+  }, []);
 
   return (
     <div className={`app-shell ${panelOpen ? "panel-open" : "panel-collapsed"}`}>
@@ -33,6 +46,8 @@ export function App() {
           <EarthScene />
         </ErrorBoundary>
         <GeographyCaption />
+        <NowPanel />
+        <DetailsCard />
       </main>
       <SettingsPanel />
       <footer className="timeline-region" data-testid="timeline-region">

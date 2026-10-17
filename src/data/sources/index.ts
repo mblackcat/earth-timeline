@@ -98,6 +98,60 @@ export const SOURCES: Record<string, Source> = {
     title: "Allen, R.C. (2009). The British Industrial Revolution in Global Perspective. Cambridge University Press.",
     note: "图书。",
   },
+  "paterson-2019": {
+    id: "paterson-2019",
+    title: "Paterson, J.R., Edgecombe, G.D. & Lee, M.S.Y. (2019). Trilobite evolutionary rates constrain the duration of the Cambrian explosion. PNAS 116: 4394–4399.",
+    url: doi("10.1073/pnas.1819366116"),
+  },
+  "shu-2003": {
+    id: "shu-2003",
+    title: "Shu, D.-G. et al. (2003). Head and backbone of the Early Cambrian vertebrate Haikouichthys. Nature 421: 526–529.",
+    url: doi("10.1038/nature01264"),
+  },
+  "libertin-2018": {
+    id: "libertin-2018",
+    title: "Libertín, M. et al. (2018). Sporophytes of polysporangiate land plants from the early Silurian period may have been photosynthetically autonomous. Nature Plants 4: 269–271.",
+    url: doi("10.1038/s41477-018-0140-y"),
+  },
+  "ahlberg-2005": {
+    id: "ahlberg-2005",
+    title: "Ahlberg, P.E., Clack, J.A. & Blom, H. (2005). The axial skeleton of the Devonian tetrapod Ichthyostega. Nature 437: 137–140.",
+    url: doi("10.1038/nature03893"),
+  },
+  "vartanyan-1993": {
+    id: "vartanyan-1993",
+    title: "Vartanyan, S.L., Garutt, V.E. & Sher, A.V. (1993). Holocene dwarf mammoths from Wrangel Island in the Siberian Arctic. Nature 362: 337–340.",
+    url: doi("10.1038/362337a0"),
+  },
+  "lister-sher-2015": {
+    id: "lister-sher-2015",
+    title: "Lister, A.M. & Sher, A.V. (2015). Evolution and dispersal of mammoths across the Northern Hemisphere. Science 350: 805–809.",
+    url: doi("10.1126/science.aac5660"),
+  },
+  "kimbel-delezene-2009": {
+    id: "kimbel-delezene-2009",
+    title: "Kimbel, W.H. & Delezene, L.K. (2009). \"Lucy\" redux: a review of research on Australopithecus afarensis. American Journal of Physical Anthropology 140 (S49): 2–48.",
+    url: doi("10.1002/ajpa.21183"),
+  },
+  "herries-2020": {
+    id: "herries-2020",
+    title: "Herries, A.I.R. et al. (2020). Contemporaneity of Australopithecus, Paranthropus, and early Homo erectus in South Africa. Science 368: eaaw7293.",
+    url: doi("10.1126/science.aaw7293"),
+  },
+  "rizal-2020": {
+    id: "rizal-2020",
+    title: "Rizal, Y. et al. (2020). Last appearance of Homo erectus at Ngandong, Java, 117,000–108,000 years ago. Nature 577: 381–385.",
+    url: doi("10.1038/s41586-019-1863-2"),
+  },
+  pbdb: {
+    id: "pbdb",
+    title: "The Paleobiology Database（PBDB），化石记录（occurrences）",
+    publisher: "paleobiodb.org",
+    url: "https://paleobiodb.org/",
+    license: "CC BY 4.0",
+    accessed: "2026-10-17",
+    note: "通过 data1.2 API（occs/list）获取，由 scripts/fetch-pbdb-sites.mjs 生成 public/data/species/pbdb-sites.json。坐标为化石点的现代经纬度。",
+  },
   "project-baseline": {
     id: "project-baseline",
     title: "本项目时间约定：yearsAgo = 0 对应公元 2000 年初（b2k）",

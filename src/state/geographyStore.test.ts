@@ -74,3 +74,25 @@ describe("startGeographySync", () => {
     stop();
   });
 });
+
+describe("reference coastline", () => {
+  it("loads the modern outlines once and silently ignores failures", async () => {
+    const { create } = await import("zustand");
+    const { loadReferenceCoastline } = await import("./geographyStore");
+    const store = create<{ outlines: [number, number][][] | null }>()(() => ({ outlines: null }));
+    const ok = new PaleoGeographyProvider([slice("modern", 10_000, 0)], {
+      fetchJson: async () => ({ format: "ett-outlines/1", sourceId: "x", outlines: [[[0, 0], [1, 1]]] }),
+    });
+    await loadReferenceCoastline(ok, slice("modern", 10_000, 0), store);
+    expect(store.getState().outlines).toEqual([[[0, 0], [1, 1]]]);
+
+    const bad = new PaleoGeographyProvider([slice("modern", 10_000, 0)], {
+      fetchJson: async () => {
+        throw new Error("offline");
+      },
+    });
+    const store2 = create<{ outlines: [number, number][][] | null }>()(() => ({ outlines: null }));
+    await expect(loadReferenceCoastline(bad, slice("modern", 10_000, 0), store2)).resolves.toBeUndefined();
+    expect(store2.getState().outlines).toBeNull();
+  });
+});

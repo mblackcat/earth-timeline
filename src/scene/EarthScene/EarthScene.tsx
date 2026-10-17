@@ -3,6 +3,8 @@ import { Stars } from "@react-three/drei";
 import { useSettingsStore } from "../../state/settingsStore";
 import { GlobeCameraController } from "../CameraController/GlobeCameraController";
 import { GeographyOutlines } from "../Terrain/GeographyOutlines";
+import { EventMarkers } from "../Living/EventMarkers";
+import { FossilSites } from "../Living/FossilSites";
 import { PALETTE } from "../Wireframe/palette";
 import { Atmosphere, Globe } from "./Globe";
 import { Graticule } from "./Graticule";
@@ -27,6 +29,8 @@ export function EarthScene() {
       <Atmosphere />
       {showGraticule && <Graticule />}
       {showOutlines && <GeographyOutlines />}
+      <FossilSites />
+      <EventMarkers />
       <GlobeCameraController />
     </Canvas>
   );

@@ -1,4 +1,5 @@
 import {
+  formatTimeRange,
   astronomicalYearToYearsAgo,
   calendarYearToYearsAgo,
   formatDeepTime,
@@ -43,5 +44,15 @@ describe("CalendarAdapter", () => {
     expect(formatDeepTime(4_540_000_000)).toContain("4.54 Ga");
     expect(formatDeepTime(50_000)).toContain("ka");
     expect(formatTime(Number.NaN)).toBe("—");
+  });
+
+  it("formats time ranges with 'until now' and labelled uncertainty", () => {
+    expect(formatTimeRange({ fromYearsAgo: 315_000, toYearsAgo: 0, uncertaintyYears: { older: 34_000, younger: 0 } })).toBe(
+      "距今 315 ka（千年） — 至今（起点 ± 34 千年）",
+    );
+    expect(formatTimeRange({ fromYearsAgo: 66e6, toYearsAgo: 66e6, uncertaintyYears: { older: 11_000, younger: 11_000 } })).toBe(
+      "距今 66 Ma（百万年）（± 11 千年）",
+    );
+    expect(formatTimeRange({ fromYearsAgo: 240, toYearsAgo: 160 })).toBe("公元 1760 年 — 公元 1840 年");
   });
 });

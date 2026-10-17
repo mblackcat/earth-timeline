@@ -1,12 +1,15 @@
 import { getSource } from "../../data/sources";
-import { useGeographyStore } from "../../state/geographyStore";
+import { useGeographyStore, useReferenceCoastlineStore } from "../../state/geographyStore";
 import { useSettingsStore } from "../../state/settingsStore";
 
 /** 场景左下角：当前地理轮廓的数据状态、示意标注与来源（PLAN §3.3.3、§9.3）。 */
 export function GeographyCaption() {
   const { slice, status, message, loadState, error } = useGeographyStore();
   const showOutlines = useSettingsStore((s) => s.showOutlines);
+  const showReference = useSettingsStore((s) => s.showModernReference);
+  const hasReference = useReferenceCoastlineStore((s) => s.outlines !== null);
   if (!showOutlines) return null;
+  const referenceShown = !slice && showReference && hasReference;
 
   return (
     <div className="geo-caption" data-testid="geo-caption" data-status={status} data-load={loadState}>
@@ -15,6 +18,11 @@ export function GeographyCaption() {
         {slice?.isSchematic && <span className="badge badge-schematic">示意数据</span>}
         {status === "fallback" && <span className="badge badge-warn">借用相邻时期</span>}
       </div>
+      {referenceShown && (
+        <div className="geo-line geo-reference" data-testid="geo-reference">
+          灰色细线为<b>现代海岸线</b>，仅帮助定位（化石点也是现代坐标），不代表当时的海陆分布。
+        </div>
+      )}
       {loadState === "loading" && <div className="geo-line">加载中…</div>}
       {loadState === "error" && <div className="geo-line geo-error">轮廓加载失败：{error}</div>}
       {slice && (
