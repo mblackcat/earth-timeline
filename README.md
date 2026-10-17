@@ -1,8 +1,8 @@
 # Earth Through Time · 地球时空演化图谱
 
-Web 端交互式 3D 地球历史探索应用。产品需求与实施规范见 [`PLAN.md`](PLAN.md)，任务进度、架构说明与已知问题见 [`TASKS.md`](TASKS.md)。
+Web 端交互式 3D 地球历史探索应用。产品需求与实施规范见 [`PLAN.md`](PLAN.md)，任务进度、架构说明与已知问题见 [`TASKS.md`](TASKS.md)，**接力开发请先读 [`HANDOFF.md`](HANDOFF.md)**。
 
-> 当前进度：**Phase 0（工程初始化）与 Phase 1（3D 地球与相机）已完成**。时间引擎、时间轴、历史数据、生物模型等尚未实现（见 TASKS.md）。
+> 当前进度：Phase 0–7 主体完成（地球与相机、时间引擎、时间轴、历史事件与代表性生物、生物模型与动画、0–18 亿年古地理）；Phase 8（优化与发布）未开始。
 
 ## 环境要求
 
@@ -45,30 +45,34 @@ E2E_BROWSER_CHANNEL=chromium npm run test:e2e
 | 双击地表 | 飞向该点并拉近 |
 | 顶部「返回全球视角」 | 保持当前经纬度，拉远到全球视角 |
 | 顶部「重置视角」 | 回到默认视角 |
-| 右侧面板 | 经纬网 / 大陆轮廓显示开关；面板可折叠 |
+| 底部 | 时间轴（拖动定位、滚轮缩放、点击事件跳转、点击年代色块缩放）+ 播放 / 暂停 + 倍速 |
+| 右侧面板 | 播放参数、时间轴刻度、图层、模型风格与细节、动画与低性能模式；可折叠 |
+| 场景左上角「此时期」 | 当前可见的代表性生物与事件，点击查看详情与来源 |
+| 详情中「近距离观察」 | 按真实比例观察生物模型与动画 |
+| 顶部「帮助」 | 全部操作说明与时间轴图例 |
 
 ## 目录结构
 
 ```text
 src/
 ├── app/            App 布局、错误边界
-├── components/     DOM UI：TopBar、SettingsPanel、Timeline（占位）等
+├── components/     DOM UI：TopBar、Help、SettingsPanel、Timeline、Scene（此时期 / 详情）、Specimen（观察窗）
 ├── scene/          R3F 3D 场景
 │   ├── EarthScene/       Canvas、地球、大气、经纬网、地理数据说明浮层
 │   ├── CameraController/ 球面相机模型（纯 TS）与 R3F 绑定
-│   ├── Terrain/          古地理 / 现代示意轮廓渲染
+│   ├── Terrain/          古地理 / 现代轮廓与参考海岸线
+│   ├── Living/           化石点、事件标记、地球上的生物模型（LOD1）
+│   ├── Models/           程序化低多边形模型、关节动画、动画时钟
+│   ├── Specimen/         近距离观察窗的局部场景
 │   └── Wireframe/        线稿通用组件与统一色板
-├── timeline/       时间相关（Phase 2 起：TimeEngine 等）
-├── data/
-│   ├── schema/     数据契约（事件 / 物种 / 视觉资产 / 来源 / 古地理切片）
-│   ├── geology/    古地理切片索引与 PaleoGeographyProvider
-│   └── sources/    数据来源登记
-├── simulation/     场景解析、动画、行为（Phase 5 起）
-├── state/          Zustand stores（时间镜像、设置、视图、地理）
-└── utils/          经纬度与球面坐标、空间层级
-public/data/        按需加载的静态数据（地理轮廓 JSON）
+├── timeline/       TimeEngine、PlaybackController、CalendarAdapter、TimeScale
+├── data/           schema、events、species、visuals、sources、regions、geology（年代表 / 古地理切片）
+├── simulation/     可见性、古坐标参考系、行为系统
+├── state/          Zustand stores（时间镜像、设置、视图、选择、场景、地理）
+└── utils/          坐标、层级、多边形融合、示意地形
+public/data/        按需加载的静态数据（海岸线、重建切片、化石点、古坐标）
 e2e/                Playwright 浏览器测试
-scripts/            调试截图脚本
+scripts/            数据生成（PBDB、GPlates）与调试截图
 ```
 
 ## 关键约定
@@ -83,6 +87,10 @@ scripts/            调试截图脚本
 | 数据 | 来源 | 许可 | 用途 |
 |---|---|---|---|
 | 现代陆地轮廓 | [Natural Earth 1:110m Land](https://www.naturalearthdata.com/downloads/110m-physical-vectors/110m-land/) | 公有领域 | 全新世（约 1.17 万年前至今）的**示意**轮廓，界面中标注"示意数据" |
+| 板块重建 | [Cao et al. 2024](https://doi.org/10.1016/j.gsf.2024.101922) · CAO2024 模型，经 [GPlates Web Service](https://gwsdoc.gplates.org/) | 模型数据 CC BY 4.0 | 0–1800 Ma 大陆位置与化石点 / 事件古坐标 |
+| 化石记录 | [Paleobiology Database](https://paleobiodb.org/) | CC BY 4.0 | 代表性生物的化石点 |
+| 地质年代 | [ICS 国际年代地层表 v2024/12](https://stratigraphy.org/ICSchart/ChronostratChart2024-12.pdf) | — | 宙 / 代 / 纪 / 世边界 |
+| 事件与物种年代 | 期刊论文与专著（逐条见 `src/data/sources`，DOI 经 Crossref 核对） | — | 年代、不确定范围与证据说明 |
 
 ## 测试
 
