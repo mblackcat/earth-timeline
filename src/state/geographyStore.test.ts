@@ -2,7 +2,6 @@ import { create } from "zustand";
 import type { PaleoGeographySlice } from "../data/schema";
 import { PaleoGeographyProvider } from "../data/geology/PaleoGeographyProvider";
 import { startGeographySync, type GeographyState } from "./geographyStore";
-import type { TimeState } from "./timeStore";
 
 const slice = (id: string, from: number, to: number): PaleoGeographySlice => ({
   id,
@@ -19,7 +18,7 @@ const slice = (id: string, from: number, to: number): PaleoGeographySlice => ({
 function setup() {
   const fetchJson = vi.fn(async (url: string) => ({ format: "ett-outlines/1", sourceId: url, outlines: [[[0, 0], [1, 0]]] }));
   const provider = new PaleoGeographyProvider([slice("modern", 10_000, 0), slice("permian", 260e6, 250e6)], { fetchJson });
-  const time = create<TimeState>()(() => ({ currentTimeYearsAgo: 0 }));
+  const time = create<{ currentTimeYearsAgo: number }>()(() => ({ currentTimeYearsAgo: 0 }));
   const geo = create<GeographyState>()(() => ({
     status: "missing",
     message: "",

@@ -1,10 +1,12 @@
 import { useEffect } from "react";
 import { TopBar } from "../components/TopBar/TopBar";
 import { SettingsPanel } from "../components/SettingsPanel/SettingsPanel";
-import { TimelinePlaceholder } from "../components/Timeline/TimelinePlaceholder";
+import { PlaybackBar } from "../components/Timeline/PlaybackBar";
+import { Timeline } from "../components/Timeline/Timeline";
 import { paleoGeographyProvider } from "../data/geology";
 import { EarthScene } from "../scene/EarthScene/EarthScene";
 import { GeographyCaption } from "../scene/EarthScene/GeographyCaption";
+import { startTimeRuntime } from "../timeline/runtime";
 import { startGeographySync } from "../state/geographyStore";
 import { useSettingsStore } from "../state/settingsStore";
 import { ErrorBoundary } from "./ErrorBoundary";
@@ -12,6 +14,7 @@ import { ErrorBoundary } from "./ErrorBoundary";
 export function App() {
   const panelOpen = useSettingsStore((s) => s.panelOpen);
 
+  useEffect(() => startTimeRuntime(), []);
   useEffect(() => startGeographySync(paleoGeographyProvider), []);
 
   return (
@@ -32,7 +35,9 @@ export function App() {
         <GeographyCaption />
       </main>
       <SettingsPanel />
-      <TimelinePlaceholder />
+      <footer className="timeline-region" data-testid="timeline-region">
+        <Timeline leading={<PlaybackBar />} />
+      </footer>
     </div>
   );
 }

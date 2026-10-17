@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import type { LonLat, PaleoGeographySlice } from "../data/schema";
 import type { PaleoGeographyProvider, PaleoResolveStatus } from "../data/geology/PaleoGeographyProvider";
+import type { StoreApi } from "zustand";
 import { useTimeStore } from "./timeStore";
+
+/** 同步只关心当前时间，不依赖完整的引擎快照。 */
+type TimeSource = Pick<StoreApi<{ currentTimeYearsAgo: number }>, "getState" | "subscribe">;
 
 export interface GeographyState {
   status: PaleoResolveStatus;
@@ -27,7 +31,7 @@ export const useGeographyStore = create<GeographyState>()(() => ({
  */
 export function startGeographySync(
   provider: PaleoGeographyProvider,
-  timeStore = useTimeStore,
+  timeStore: TimeSource = useTimeStore,
   geoStore = useGeographyStore,
 ): () => void {
   let currentSliceId: string | null | undefined;

@@ -125,6 +125,27 @@ export function maToYearsAgo(ma: number): number {
   return ma * YEARS_PER_MA;
 }
 
+/** 现代基准（yearsAgo = 0）对应的公历年份：公元 2000 年初（与 b2k 一致）。 */
+export const MODERN_BASELINE_CE_YEAR = 2000;
+
+/**
+ * 放射性碳"BP"年（以公元 1950 年为 0）→ yearsAgo（以 2000 年为 0）。
+ * 文献中的 cal BP 必须经此转换，否则会差 50 年（TASKS 风险 R6）。
+ */
+export function calBpToYearsAgo(bp: number): number {
+  return bp + (MODERN_BASELINE_CE_YEAR - 1950);
+}
+
+/**
+ * 公元纪年（无公元 0 年）→ yearsAgo。`year` 为正整数，`era` 区分公元前后。
+ * 数据层的轻量版本；完整的双向换算与格式化见 timeline/CalendarAdapter。
+ */
+export function ceToYearsAgo(year: number, era: "BCE" | "CE" = "CE"): number {
+  if (!Number.isInteger(year) || year < 1) throw new RangeError("there is no year 0");
+  const astronomical = era === "CE" ? year : 1 - year;
+  return MODERN_BASELINE_CE_YEAR - astronomical;
+}
+
 export function isWithinTimeRange(range: TimeRange, yearsAgo: number): boolean {
   return yearsAgo <= range.fromYearsAgo && yearsAgo >= range.toYearsAgo;
 }

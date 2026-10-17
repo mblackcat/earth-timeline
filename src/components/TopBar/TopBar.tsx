@@ -1,6 +1,8 @@
 import { useTimeStore } from "../../state/timeStore";
 import { useViewStore } from "../../state/viewStore";
-import { formatYearsAgoPlain } from "../../timeline/format";
+import { HelpButton } from "../Help/HelpButton";
+import { describeGeoPeriod } from "../../data/geology/timescale";
+import { formatTime } from "../../timeline/CalendarAdapter";
 import { EARTH_RADIUS_KM, LEVEL_LABELS } from "../../utils/geo";
 
 export function TopBar() {
@@ -19,8 +21,9 @@ export function TopBar() {
         <span className="brand-sub">地球时空演化图谱</span>
       </div>
       <div className="top-time" data-testid="current-time">
-        {formatYearsAgoPlain(yearsAgo)}
+        {formatTime(yearsAgo)}
       </div>
+      <GeoPeriod />
       <div className="top-view">
         <span
           className="view-level"
@@ -39,7 +42,18 @@ export function TopBar() {
         <button type="button" onClick={() => requestCamera("default")} data-testid="btn-reset-view">
           重置视角
         </button>
+        <HelpButton />
       </div>
     </header>
+  );
+}
+
+/** 当前历史时期（ICS 宙/代/纪/世）。只在所属单位变化时更新文本。 */
+function GeoPeriod() {
+  const text = useTimeStore((s) => describeGeoPeriod(s.currentTimeYearsAgo));
+  return (
+    <div className="top-period" data-testid="current-period" title="当前地质年代（ICS v2024/12）">
+      {text}
+    </div>
   );
 }
