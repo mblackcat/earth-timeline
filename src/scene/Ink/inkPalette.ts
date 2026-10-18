@@ -24,3 +24,8 @@ export function mixHex(a: string, b: string, t: number): string {
   const pb = parse(b);
   return `#${pa.map((v, i) => Math.round(v + (pb[i]! - v) * t).toString(16).padStart(2, "0")).join("")}`;
 }
+
+/** 经纬网配色：网点档用纸色细线叠在网点上，其余用浅线。 */
+export function graticuleStyle(style: "line" | "tone" | "plain"): { minor: string; major: string } {
+  return style === "tone" ? { minor: INK.paper, major: INK.sheet } : { minor: INK.rule, major: INK.ink3 };
+}

@@ -54,7 +54,8 @@ float inkHalftone(float d) {
   float r = sqrt(clamp(d, 0.0, 1.0)) * 0.72;
   float dist = length(f);
   float aa = max(fwidth(dist), 1e-3);
-  return 1.0 - smoothstep(r - aa, r + aa, dist);
+  // 半径为 0 时抗锯齿带仍会在格心留下小点：暗度极低时渐隐，避免出现硬边界
+  return (1.0 - smoothstep(r - aa, r + aa, dist)) * smoothstep(0.0, 0.06, d);
 }
 
 vec3 inkShade(vec3 base, vec3 n) {
@@ -113,6 +114,13 @@ export function createToneMaterial({ base, mode, landMask = null, land = INK.she
 /** 热切换风格：只改 uniform，不重建材质 / 程序。 */
 export function setToneMode(mat: MeshLambertMaterial, mode: ToneMode) {
   (mat.userData.tone as { uToneMode: { value: number } }).uToneMode.value = MODE_INDEX[mode];
+}
+
+/** 更换陆地遮罩（null：退化为全部海洋网点）。 */
+export function setToneLandMask(mat: MeshLambertMaterial, mask: Texture | null) {
+  const tone = mat.userData.tone as { uLandMask: { value: Texture | null }; uHasMask: { value: number } };
+  tone.uLandMask.value = mask;
+  tone.uHasMask.value = mask ? 1 : 0;
 }
 
 /** 外轮廓：背面外扩固定像素宽（与距离无关），墨色。 */

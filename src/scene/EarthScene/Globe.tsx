@@ -1,54 +1,38 @@
-import { useMemo } from "react";
-import { AdditiveBlending, BackSide, Color, IcosahedronGeometry } from "three";
+import { useEffect, useMemo } from "react";
+import { BackSide, IcosahedronGeometry } from "three";
+import { useGeographyStore } from "../../state/geographyStore";
+import { useSettingsStore } from "../../state/settingsStore";
 import { EARTH_RADIUS } from "../../utils/geo";
-import { PALETTE } from "../Wireframe/palette";
+import { INK } from "../Ink/inkPalette";
+import { useLandMaskTexture } from "../Ink/landMask";
+import { createToneMaterial, setToneLandMask, setToneMode } from "../Ink/toneMaterial";
 
-/** 低多边形地球球体（实体底色，线条由经纬网与轮廓层提供）。 */
+/** 地球球体：海洋铺网点（背光侧加粗、边缘涂黑），陆地按当前切片的遮罩留白。 */
 export function Globe() {
   // detail 5：边长约 0.034，弦高误差约 1.5e-4，远小于线稿层的抬升高度。
   const geometry = useMemo(() => new IcosahedronGeometry(EARTH_RADIUS, 5), []);
-  return (
-    <mesh geometry={geometry} name="globe">
-      <meshStandardMaterial color={PALETTE.oceanFill} roughness={0.95} metalness={0} flatShading />
-    </mesh>
-  );
+  const style = useSettingsStore((s) => s.visualStyle);
+  const lowPerformance = useSettingsStore((s) => s.lowPerformance);
+  const outlines = useGeographyStore((s) => s.outlines);
+  const mask = useLandMaskTexture(outlines, lowPerformance ? 2048 : 4096);
+  const material = useMemo(() => {
+    const m = createToneMaterial({ base: INK.paper, mode: "tone", land: INK.sheet });
+    // 球面用平滑法线：否则二十面体的面会在网点上显形
+    m.flatShading = false;
+    return m;
+  }, []);
+  useEffect(() => setToneMode(material, style), [material, style]);
+  useEffect(() => setToneLandMask(material, mask), [material, mask]);
+  useEffect(() => () => material.dispose(), [material]);
+  return <mesh geometry={geometry} material={material} name="globe" />;
 }
 
-const atmosphereVertex = /* glsl */ `
-  varying vec3 vNormal;
-  varying vec3 vView;
-  void main() {
-    vec4 mv = modelViewMatrix * vec4(position, 1.0);
-    vNormal = normalize(normalMatrix * normal);
-    vView = normalize(-mv.xyz);
-    gl_Position = projectionMatrix * mv;
-  }
-`;
-const atmosphereFragment = /* glsl */ `
-  uniform vec3 uColor;
-  varying vec3 vNormal;
-  varying vec3 vView;
-  void main() {
-    float rim = pow(1.0 - abs(dot(vNormal, vView)), 3.0);
-    gl_FragColor = vec4(uColor, rim * 0.6);
-  }
-`;
-
-/** 大气边缘光：仅渲染背面，避免遮挡地表线条。 */
-export function Atmosphere() {
-  const uniforms = useMemo(() => ({ uColor: { value: new Color(PALETTE.atmosphere) } }), []);
+/** 球体轮廓线：略大的背面球，墨色。 */
+export function GlobeRim() {
   return (
-    <mesh scale={1.04} name="atmosphere">
-      <sphereGeometry args={[EARTH_RADIUS, 64, 32]} />
-      <shaderMaterial
-        vertexShader={atmosphereVertex}
-        fragmentShader={atmosphereFragment}
-        uniforms={uniforms}
-        side={BackSide}
-        transparent
-        depthWrite={false}
-        blending={AdditiveBlending}
-      />
+    <mesh scale={1.006} name="globe-rim">
+      <sphereGeometry args={[EARTH_RADIUS, 96, 48]} />
+      <meshBasicMaterial color={INK.ink} side={BackSide} toneMapped={false} />
     </mesh>
   );
 }

@@ -1,5 +1,5 @@
 // src/scene/Ink/inkPalette.test.ts
-import { INK, mixHex } from "./inkPalette";
+import { graticuleStyle, INK, mixHex } from "./inkPalette";
 import { SPECIES_COLORS, SPECIES_COLORS_MUTED } from "../Living/speciesColors";
 import { CATEGORY_STYLE } from "../../components/Timeline/categories";
 
@@ -29,5 +29,13 @@ describe("muted colors", () => {
   });
   it("extinction events use the red pen", () => {
     expect(CATEGORY_STYLE.extinction.color).toBe(INK.mark);
+  });
+});
+
+describe("graticuleStyle", () => {
+  it("tone: paper lines over the dots; line / plain: light rule lines", () => {
+    expect(graticuleStyle("tone")).toEqual({ minor: INK.paper, major: INK.sheet });
+    expect(graticuleStyle("line")).toEqual({ minor: INK.rule, major: INK.ink3 });
+    expect(graticuleStyle("plain")).toEqual({ minor: INK.rule, major: INK.ink3 });
   });
 });

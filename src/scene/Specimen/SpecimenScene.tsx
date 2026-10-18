@@ -18,7 +18,7 @@ import { applyClip } from "../Models/animation";
 import { useAnimationClock } from "../Models/animationClock";
 import { useRigs } from "../Models/useRig";
 import type { Lod } from "../Models/rig";
-import { PALETTE } from "../Wireframe/palette";
+import { INK } from "../Ink/inkPalette";
 
 /**
  * 近距离观察的局部场景（TASKS 风险 R1）：独立的米制坐标系，模型使用真实体长，
@@ -63,7 +63,7 @@ function Terrain({ half, asset }: { half: number; asset: VisualizationAsset }) {
         <meshStandardMaterial color={water ? "#0b1d2c" : "#141c18"} flatShading roughness={1} polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
       </mesh>
       <mesh geometry={ground}>
-        <meshBasicMaterial color={PALETTE.graticuleMinor} wireframe transparent opacity={0.25} />
+        <meshBasicMaterial color={INK.rule} wireframe transparent opacity={0.25} />
       </mesh>
       <lineSegments geometry={contours}>
         <lineBasicMaterial color={water ? "#3f7fa0" : "#6f8a5a"} transparent opacity={0.8} />
@@ -156,7 +156,7 @@ export function SpecimenScene({ asset, clipMode, onLodChange }: { asset: Visuali
 
   return (
     <>
-      <color attach="background" args={[PALETTE.background]} />
+      <color attach="background" args={[INK.paper]} />
       <ambientLight intensity={0.7} />
       <directionalLight position={[3, 6, 4]} intensity={1.3} />
       <Terrain half={half} asset={asset} />

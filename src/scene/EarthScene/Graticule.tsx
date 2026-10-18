@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { useViewStore } from "../../state/viewStore";
 import { graticuleLines, type SpatialLevel } from "../../utils/geo";
 import { SphereLines } from "../Wireframe/SphereLines";
-import { PALETTE } from "../Wireframe/palette";
+import { useSettingsStore } from "../../state/settingsStore";
+import { graticuleStyle } from "../Ink/inkPalette";
 
 /**
  * 经纬网。按空间层级逐级加密，远景只保留 15° 主网格，避免线条噪点（PLAN §6.3）：
@@ -17,6 +18,7 @@ const DENSER: { step: number; minLevel: SpatialLevel; opacity: number }[] = [
 
 export function Graticule() {
   const level = useViewStore((s) => s.level);
+  const colors = graticuleStyle(useSettingsStore((s) => s.visualStyle));
   const base = useMemo(() => graticuleLines(15), []);
   const dense = useMemo(() => DENSER.map((d) => ({ ...d, lines: graticuleLines(d.step, Math.min(2, d.step)).lines })), []);
 
@@ -29,14 +31,14 @@ export function Graticule() {
               key={d.step}
               lines={d.lines}
               radius={1.0008}
-              color={PALETTE.graticuleMinor}
+              color={colors.minor}
               opacity={d.opacity}
               name={`graticule-${d.step}`}
             />
           ),
       )}
-      <SphereLines lines={base.lines} radius={1.001} color={PALETTE.graticuleMinor} name="graticule-minor" />
-      <SphereLines lines={base.major} radius={1.001} color={PALETTE.graticuleMajor} name="graticule-major" />
+      <SphereLines lines={base.lines} radius={1.001} color={colors.minor} name="graticule-minor" />
+      <SphereLines lines={base.major} radius={1.001} color={colors.major} name="graticule-major" />
     </group>
   );
 }

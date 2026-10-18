@@ -1,6 +1,6 @@
 import { BackSide, Color, MeshBasicMaterial, MeshLambertMaterial, ShaderLib, Texture, type WebGLProgramParametersWithUniforms } from "three";
 import { INK } from "./inkPalette";
-import { createOutlineMaterial, createToneMaterial, setToneMode, TONE_SHARED } from "./toneMaterial";
+import { createOutlineMaterial, createToneMaterial, setToneLandMask, setToneMode, TONE_SHARED } from "./toneMaterial";
 
 /** 用 three 自带的着色器源码模拟一次编译，检查注入点都命中。 */
 function compile(mat: MeshLambertMaterial | MeshBasicMaterial, lib: "lambert" | "basic") {
@@ -54,6 +54,9 @@ describe("createToneMaterial", () => {
     const m = createToneMaterial({ base: INK.paper, mode: "tone", landMask: new Texture() });
     expect(m.userData.tone.uHasMask.value).toBe(1);
     expect(createToneMaterial({ base: INK.paper, mode: "tone" }).userData.tone.uHasMask.value).toBe(0);
+    setToneLandMask(m, null);
+    expect(m.userData.tone.uHasMask.value).toBe(0);
+    expect(m.userData.tone.uLandMask.value).toBeNull();
   });
 
   it("dots: false keeps tone mode but disables the screen dots (LOD1)", () => {
