@@ -8,7 +8,7 @@ import { useGeographyStore } from "../../state/geographyStore";
 import { useFossilSitesStore, usePaleoPointsStore } from "../../state/sceneStore";
 import { frameFor, speciesSitesInFrame } from "../../simulation/paleoPositions";
 import { useSelectionStore } from "../../state/selectionStore";
-import { SPECIES_COLORS } from "../../scene/Living/speciesColors";
+import { SPECIES_COLORS_MUTED } from "../../scene/Living/speciesColors";
 import { eventAnchorLonLat } from "../../simulation/VisibilityResolver";
 import { formatTimeRange } from "../../timeline/CalendarAdapter";
 import { CATEGORY_STYLE } from "../Timeline/categories";
@@ -100,7 +100,7 @@ function SpeciesDetail({ id }: { id: string }) {
   const shown = sites ? speciesSitesInFrame(id, sites.sites, frame, paleo).length : 0;
   return (
     <>
-      <div className="detail-kicker" style={{ color: SPECIES_COLORS[id] }}>
+      <div className="detail-kicker" style={{ color: SPECIES_COLORS_MUTED[id] }}>
         ● 代表性生物 · {RANK_LABELS[sp.rank]}
       </div>
       <h3 className="detail-title">

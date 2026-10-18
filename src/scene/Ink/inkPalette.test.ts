@@ -1,5 +1,7 @@
 // src/scene/Ink/inkPalette.test.ts
 import { INK, mixHex } from "./inkPalette";
+import { SPECIES_COLORS, SPECIES_COLORS_MUTED } from "../Living/speciesColors";
+import { CATEGORY_STYLE } from "../../components/Timeline/categories";
 
 describe("mixHex", () => {
   it("t = 0 returns a, t = 1 returns b", () => {
@@ -18,5 +20,14 @@ describe("mixHex", () => {
 describe("INK", () => {
   it("matches the ai-score sheet tokens", () => {
     expect(INK).toMatchObject({ paper: "#f2f3f0", sheet: "#f7f8f5", ink: "#171917", rule: "#c5c8c2", mark: "#9c1c1c" });
+  });
+});
+
+describe("muted colors", () => {
+  it("every species has a muted color mixed toward paper", () => {
+    for (const [id, c] of Object.entries(SPECIES_COLORS)) expect(SPECIES_COLORS_MUTED[id]).toBe(mixHex(c, INK.paper, 0.3));
+  });
+  it("extinction events use the red pen", () => {
+    expect(CATEGORY_STYLE.extinction.color).toBe(INK.mark);
   });
 });

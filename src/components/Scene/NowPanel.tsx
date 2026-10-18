@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useFossilSitesStore, useSceneStore } from "../../state/sceneStore";
 import { useSelectionStore } from "../../state/selectionStore";
 import { eventAnchorLonLat } from "../../simulation/VisibilityResolver";
-import { SPECIES_COLORS } from "../../scene/Living/speciesColors";
+import { SPECIES_COLORS_MUTED } from "../../scene/Living/speciesColors";
 import { CATEGORY_STYLE } from "../Timeline/categories";
 
 /** 场景左上角：当前时间可见的物种与事件（随时间自动变化，点击查看详情）。 */
@@ -29,7 +29,7 @@ export function NowPanel() {
               {species.map((s) => (
                 <li key={s.id}>
                   <button type="button" onClick={() => selectSpecies(s.id)} data-testid={`now-species-${s.id}`}>
-                    <span className="now-dot round" style={{ background: SPECIES_COLORS[s.id] }} />
+                    <span className="now-dot round" style={{ background: SPECIES_COLORS_MUTED[s.id] }} />
                     {s.commonName}
                   </button>
                 </li>
