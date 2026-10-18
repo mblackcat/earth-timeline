@@ -4,6 +4,8 @@ import { bindTimeStore } from "../../state/timeStore";
 import { useSelectionStore } from "../../state/selectionStore";
 import { useSettingsStore } from "../../state/settingsStore";
 import { timeEngine } from "../../timeline/runtime";
+import { INK, mixHex } from "../../scene/Ink/inkPalette";
+import { geoPathAt } from "../../data/geology/timescale";
 import { TimeScale } from "../../timeline/TimeScale";
 
 const WIDTH = 1030; // 轨道宽 1000 + 左侧 30
@@ -151,5 +153,14 @@ describe("Timeline", () => {
     fireEvent.keyDown(svg, { key: "+" });
     expect(windowOf().u1 - windowOf().u0).toBeCloseTo(0.5, 6);
     timeEngine.setStepSize(1);
+  });
+
+  it("geo bands are ICS colors mixed toward paper, and the current units are marked", () => {
+    act(() => timeEngine.seek(66_500_000));
+    render(<Timeline leading={null} />);
+    const period = geoPathAt(66_500_000).period!;
+    const g = document.querySelector(`[data-unit-id="${period.id}"]`)!;
+    expect(g.querySelector("rect")!.getAttribute("fill")).toBe(mixHex(period.color, INK.paper, 0.45));
+    expect(g).toHaveClass("current");
   });
 });

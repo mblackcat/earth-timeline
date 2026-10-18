@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { EVENTS, eventAnchorYearsAgo } from "../../data/events";
 import type { HistoricalEvent } from "../../data/schema";
-import { GEO_RANKS, GEO_RANK_LABELS, GEO_UNITS, GEO_UNIT_BY_ID, type GeoRank } from "../../data/geology/timescale";
+import { GEO_RANKS, GEO_RANK_LABELS, GEO_UNITS, GEO_UNIT_BY_ID, geoPathAt, type GeoRank } from "../../data/geology/timescale";
 import { jumpToEvent } from "../../state/actions";
 import { useSelectionStore } from "../../state/selectionStore";
 import { useSettingsStore } from "../../state/settingsStore";
 import { useTimeStore } from "../../state/timeStore";
 import { formatTime } from "../../timeline/CalendarAdapter";
 import { timeEngine } from "../../timeline/runtime";
+import { INK, mixHex } from "../../scene/Ink/inkPalette";
 import {
   FULL_VIEW,
   TimeScale,
@@ -115,6 +116,9 @@ export function Timeline({ leading }: { leading?: ReactNode }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const maxYearsAgo = useTimeStore((s) => s.maxYearsAgo);
   const minYearsAgo = useTimeStore((s) => s.minYearsAgo);
+  // 当前所在的各级单位（只在单位变化时更新）
+  const currentKey = useTimeStore((s) => Object.values(geoPathAt(s.currentTimeYearsAgo)).map((u) => u!.id).join("|"));
+  const currentIds = useMemo(() => new Set(currentKey.split("|")), [currentKey]);
   const selectedEventId = useSelectionStore((s) => s.selectedEventId);
 
   const scaleKind = useSettingsStore((s) => s.timelineScale);
@@ -316,20 +320,26 @@ export function Timeline({ leading }: { leading?: ReactNode }) {
               <text x={GUTTER - 6} y={ROW_H - 4} textAnchor="end" className="tl-row-label">
                 {GEO_RANK_LABELS[row.rank]}
               </text>
-              {row.units.map(({ unit, x0, x1 }) => (
-                <g key={unit.id} data-unit-id={unit.id} className="tl-unit">
-                  <rect x={GUTTER + x0} y={0} width={x1 - x0} height={ROW_H - 1} fill={unit.color}>
+              {row.units.map(({ unit, x0, x1 }) => {
+                const isCurrent = currentIds.has(unit.id);
+                return (
+                <g key={unit.id} data-unit-id={unit.id} className={`tl-unit${isCurrent ? " current" : ""}`}>
+                  <rect x={GUTTER + x0} y={0} width={x1 - x0} height={ROW_H - 1} fill={mixHex(unit.color, INK.paper, 0.45)}>
                     <title>
                       {`${unit.name}（${unit.nameEn}）${formatTick(unit.range.fromYearsAgo, unit.range.fromYearsAgo)} – ${formatTick(unit.range.toYearsAgo, unit.range.fromYearsAgo)}${unit.approximate ? "（含近似边界）" : ""}\n点击缩放到该时期`}
                     </title>
                   </rect>
+                  {isCurrent && (
+                    <line className="tl-unit-current" x1={GUTTER + x0} x2={GUTTER + x1} y1={ROW_H - 1.5} y2={ROW_H - 1.5} />
+                  )}
                   {x1 - x0 > unit.name.length * 11 + 6 && (
                     <text x={GUTTER + (x0 + x1) / 2} y={ROW_H - 4} textAnchor="middle" className="tl-unit-label">
                       {unit.name}
                     </text>
                   )}
                 </g>
-              ))}
+                );
+              })}
             </g>
           ))}
 
@@ -352,7 +362,7 @@ export function Timeline({ leading }: { leading?: ReactNode }) {
                   <title>{`${event.title}\n${formatTime(event.time.fromYearsAgo)}${event.time.toYearsAgo !== event.time.fromYearsAgo ? ` — ${formatTime(event.time.toYearsAgo)}` : ""}\n${CATEGORY_STYLE[event.category].label} · 点击跳转`}</title>
                   {x1 - x0 > 2 && <rect x={x0} y={3} width={x1 - x0} height={4} fill={color} opacity={0.55} />}
                   <rect x={ax - 8} y={0} width={16} height={EVENT_H} fill="transparent" />
-                  <path d={`M${ax},1 l5,5 l-5,5 l-5,-5 Z`} fill={color} stroke={isSel ? "#fff" : "none"} />
+                  <path d={`M${ax},1 l5,5 l-5,5 l-5,-5 Z`} fill={color} stroke={isSel ? INK.ink : "none"} />
                   {showLabel && (
                     <text x={ax + 7} y={22} fill={color} className="tl-event-label">
                       {event.title}
