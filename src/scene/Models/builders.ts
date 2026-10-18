@@ -249,5 +249,5 @@ export function buildRig(asset: VisualizationAsset, lod: Lod, style: Style): Rig
   const b = new RigBuilder(lod);
   b.root.name = asset.id;
   const height = BUILDERS[asset.archetype](b, asset.params);
-  return b.finish(style, asset.color, asset.accent, height);
+  return b.finish(style, height);
 }

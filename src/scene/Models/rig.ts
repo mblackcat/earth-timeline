@@ -1,7 +1,6 @@
 import {
   BoxGeometry,
   BufferGeometry,
-  Color,
   ConeGeometry,
   CylinderGeometry,
   EdgesGeometry,
@@ -10,10 +9,11 @@ import {
   LineBasicMaterial,
   LineSegments,
   Mesh,
-  MeshStandardMaterial,
   Object3D,
   type Material,
 } from "three";
+import { INK } from "../Ink/inkPalette";
+import { createOutlineMaterial, createToneMaterial } from "../Ink/toneMaterial";
 
 /**
  * 程序化低多边形模型的基础设施：关节层级、部件、渲染风格。
@@ -35,7 +35,7 @@ export interface Rig {
 
 export interface PartSpec {
   geometry: BufferGeometry;
-  /** "body" 用主体色，"accent" 用强调色。 */
+  /** 部件角色（主体 / 强调）。墨线风格下两者同为白纸底，保留以便以后区分。 */
   tone: "body" | "accent";
 }
 
@@ -84,8 +84,8 @@ export class RigBuilder {
     return { geometry: new ConeGeometry(0.5, 1, segments ?? (this.lod === 0 ? 6 : 4)), tone };
   }
 
-  finish(style: Style, color: string, accent: string, height: number): Rig {
-    applyStyle(this.parts, style, color, accent, this.lod);
+  finish(style: Style, height: number): Rig {
+    applyStyle(this.parts, style, this.lod);
     const rest: Rig["rest"] = {};
     for (const [name, j] of Object.entries(this.joints)) rest[name] = { x: j.rotation.x, y: j.rotation.y, z: j.rotation.z, s: j.scale.x };
     const root = this.root;
@@ -109,36 +109,26 @@ export class RigBuilder {
 }
 
 /** 折边阈值：LOD0 显示适度的内部边线，LOD1 只保留明显轮廓（PLAN §6.3）。 */
-const EDGE_THRESHOLD_DEG: Record<Style, Record<Lod, number>> = {
-  line: { 0: 28, 1: 50 },
-  tone: { 0: 28, 1: 50 },
-  plain: { 0: 90, 1: 90 },
-};
-const FILL_DARK = "#0b111c";
+const EDGE_THRESHOLD_DEG: Record<Lod, number> = { 0: 28, 1: 50 };
+/** 外轮廓宽度（屏幕像素）。 */
+const OUTLINE_PX: Record<Lod, number> = { 0: 1.5, 1: 1 };
 
-function applyStyle(parts: { mesh: Mesh; tone: PartSpec["tone"] }[], style: Style, color: string, accent: string, lod: Lod) {
-  for (const { mesh, tone } of parts) {
-    const base = new Color(tone === "body" ? color : accent);
-    // 填充：实体 / 混合用固有色；线稿用深色填充，只遮挡背面线条
-    const fill = new MeshStandardMaterial({
-      color: style === "line" ? new Color(FILL_DARK) : base,
-      flatShading: true,
-      roughness: 0.9,
-      metalness: 0,
-      polygonOffset: true,
-      polygonOffsetFactor: 1,
-      polygonOffsetUnits: 1,
-    });
-    mesh.material = fill;
+/**
+ * 墨线 + 网点：填充一律白纸底（不用物种色），tone 档叠网点，plain 档平滑灰阶；
+ * line / tone 档加折边线与背面外扩的外轮廓。LOD1 在地球上只有图标大小，不画网点。
+ */
+function applyStyle(parts: { mesh: Mesh }[], style: Style, lod: Lod) {
+  for (const { mesh } of parts) {
+    mesh.material = createToneMaterial({ base: INK.sheet, mode: style, dots: lod === 0 });
     if (style === "plain") continue;
-    // 线稿：明亮的强调色线条（深色背景下可辨认）；混合：固有色压暗的轮廓
-    const lineColor = style === "line" ? base.clone().lerp(new Color("#ffffff"), 0.55) : base.clone().multiplyScalar(0.45);
-    const edges = new LineSegments(
-      new EdgesGeometry(mesh.geometry, EDGE_THRESHOLD_DEG[style][lod]),
-      new LineBasicMaterial({ color: lineColor }),
-    );
+    const edges = new LineSegments(new EdgesGeometry(mesh.geometry, EDGE_THRESHOLD_DEG[lod]), new LineBasicMaterial({ color: INK.ink, toneMapped: false }));
     edges.name = "edges";
     edges.raycast = () => {};
     mesh.add(edges);
+    // 外轮廓与部件共用几何体（dispose 重复调用无害）
+    const outline = new Mesh(mesh.geometry, createOutlineMaterial(OUTLINE_PX[lod]));
+    outline.name = "outline";
+    outline.raycast = () => {};
+    mesh.add(outline);
   }
 }

@@ -1,9 +1,10 @@
-import { LineSegments, Mesh, type Object3D } from "three";
+import { Color, LineSegments, Mesh, MeshLambertMaterial, type Material, type Object3D } from "three";
 import { SPECIES } from "../../data/species";
 import { VISUALS, VISUAL_BY_ID } from "../../data/visuals";
 import { applyClip, clipsFor } from "./animation";
 import { advanceAnimationClock } from "./animationClock";
 import { buildRig } from "./builders";
+import { INK } from "../Ink/inkPalette";
 
 const count = (root: Object3D, type: typeof Mesh | typeof LineSegments) => {
   let n = 0;
@@ -41,12 +42,53 @@ describe("procedural models", () => {
     r1.dispose();
   });
 
-  it("styles: plain has no edge lines; tone and line outline every part", () => {
+  const outlines = (root: Object3D) => {
+    let n = 0;
+    root.traverse((o) => o instanceof Mesh && o.name === "outline" && n++);
+    return n;
+  };
+  const fills = (root: Object3D) => {
+    const out: MeshLambertMaterial[] = [];
+    root.traverse((o) => o instanceof Mesh && o.name !== "outline" && out.push(o.material as MeshLambertMaterial));
+    return out;
+  };
+
+  it("styles: tone / line have edges + outline on every part; plain has neither", () => {
     const v = VISUAL_BY_ID["viz-tyrannosaurus"]!;
-    const plain = buildRig(v, 0, "plain");
     const tone = buildRig(v, 0, "tone");
+    const line = buildRig(v, 0, "line");
+    const plain = buildRig(v, 0, "plain");
+    const parts = fills(tone.root).length;
+    expect(parts).toBeGreaterThan(3);
+    expect(count(tone.root, LineSegments)).toBe(parts);
+    expect(outlines(tone.root)).toBe(parts);
+    expect(outlines(line.root)).toBe(parts);
     expect(count(plain.root, LineSegments)).toBe(0);
-    expect(count(tone.root, LineSegments)).toBe(count(tone.root, Mesh));
+    expect(outlines(plain.root)).toBe(0);
+  });
+
+  it("fills are paper-white tone materials in the matching mode; LOD1 tone has no dots", () => {
+    const v = VISUAL_BY_ID["viz-mammoth"]!;
+    const mode = (r: ReturnType<typeof buildRig>) => new Set(fills(r.root).map((m) => m.userData.tone.uToneMode.value));
+    expect(mode(buildRig(v, 0, "line"))).toEqual(new Set([0]));
+    expect(mode(buildRig(v, 0, "tone"))).toEqual(new Set([1]));
+    expect(mode(buildRig(v, 0, "plain"))).toEqual(new Set([2]));
+    for (const m of fills(buildRig(v, 0, "tone").root)) {
+      expect(m.color.getHexString()).toBe(new Color(INK.sheet).getHexString());
+      expect(m.userData.tone.uDots.value).toBe(1);
+    }
+    for (const m of fills(buildRig(v, 1, "tone").root)) expect(m.userData.tone.uDots.value).toBe(0);
+  });
+
+  it("dispose releases outline and edge materials", () => {
+    const rig = buildRig(VISUAL_BY_ID["viz-trilobite"]!, 0, "tone");
+    const disposed: string[] = [];
+    rig.root.traverse((o) => {
+      if (o instanceof Mesh || o instanceof LineSegments) (o.material as Material).addEventListener("dispose", () => disposed.push(o.name));
+    });
+    rig.dispose();
+    expect(disposed.filter((n) => n === "outline").length).toBeGreaterThan(0);
+    expect(disposed.filter((n) => n === "edges").length).toBeGreaterThan(0);
   });
 
   it("edge lines are a subset of mesh edges (not every triangle edge), and sparser at LOD1", () => {
