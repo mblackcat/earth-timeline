@@ -74,8 +74,8 @@ vec3 inkShade(vec3 base, vec3 n) {
   }
   if (uToneMode == 0) return base;
   if (uToneMode == 2) return mix(base, uInk, d * mix(0.75, 0.25, land));
-  // tone：陆地只在背光侧叠很淡的网点；海洋网点 + 边缘涂黑
-  float dl = land > 0.5 ? max(0.0, d - 0.55) * 0.5 : d;
+  // tone：陆地留白（拉近后视角倾斜，背光区很大，陆地若也画网点就与海洋分不清）；海洋网点 + 边缘涂黑
+  float dl = d * (1.0 - land);
   // 导数（fwidth）放在分支之外，避免非一致控制流
   float ink = inkHalftone(dl) * uDots;
   if (land < 0.5 && d > INK_SOLID) return uInk;

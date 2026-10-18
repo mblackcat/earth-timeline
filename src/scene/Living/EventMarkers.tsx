@@ -2,7 +2,6 @@ import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useRef } from "react";
 import { Vector3 } from "three";
-import { CATEGORY_STYLE } from "../../components/Timeline/categories";
 import type { HistoricalEvent, LonLat } from "../../data/schema";
 import { useGeographyStore } from "../../state/geographyStore";
 import { usePaleoPointsStore, useSceneStore } from "../../state/sceneStore";
@@ -10,6 +9,7 @@ import { eventPositionInFrame, frameFor } from "../../simulation/paleoPositions"
 import { useSelectionStore } from "../../state/selectionStore";
 import type { EventEmphasis } from "../../simulation/VisibilityResolver";
 import { lonLatToXYZ } from "../../utils/geo";
+import { INK } from "../Ink/inkPalette";
 
 const MARKER_RADIUS = 1.006;
 /** 标记所在法线与视线夹角的余弦低于该值时隐藏（转到地球背面）。 */
@@ -21,7 +21,8 @@ function Marker({ event, emphasis, lonLat }: { event: HistoricalEvent; emphasis:
   const elRef = useRef<HTMLDivElement>(null);
   const selectedId = useSelectionStore((s) => s.selectedEventId);
   const selectEvent = useSelectionStore((s) => s.selectEvent);
-  const color = CATEGORY_STYLE[event.category].color;
+  // 纸面标签用墨色；灾变 / 灭绝类用红笔
+  const color = event.category === "extinction" ? INK.mark : INK.ink;
   const tmp = useRef(new Vector3());
 
   // 背面隐藏：直接改 DOM 样式，不触发 React 渲染。

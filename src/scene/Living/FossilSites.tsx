@@ -7,7 +7,8 @@ import { frameFor, speciesSitesInFrame } from "../../simulation/paleoPositions";
 import { useSelectionStore } from "../../state/selectionStore";
 import { useViewStore } from "../../state/viewStore";
 import { lonLatToXYZ } from "../../utils/geo";
-import { SPECIES_COLORS } from "./speciesColors";
+import { INK } from "../Ink/inkPalette";
+import { SPECIES_COLORS_MUTED } from "./speciesColors";
 
 const SITE_RADIUS = 1.004;
 /** 点击判定半径（像素），换算为世界单位后随高度变化。 */
@@ -25,7 +26,7 @@ function buildPoints(entries: { id: string; sites: [number, number][] }[]): Buil
   const col: number[] = [];
   const c = new Color();
   for (const { id, sites } of entries) {
-    c.set(SPECIES_COLORS[id] ?? "#ffffff");
+    c.set(SPECIES_COLORS_MUTED[id] ?? INK.ink3);
     for (const [lon, lat] of sites) {
       pos.push(...lonLatToXYZ(lon, lat, SITE_RADIUS));
       col.push(c.r, c.g, c.b);
@@ -86,13 +87,22 @@ export function FossilSites() {
 
   return (
     <group name="fossil-sites">
-      <points geometry={all.geometry} onClick={onClick}>
-        <pointsMaterial vertexColors size={5} sizeAttenuation={false} depthWrite={false} transparent opacity={0.9} />
+      {/* 点材质无法描边：下层垫一个稍大的墨点作为外圈 */}
+      <points geometry={all.geometry} raycast={() => null} renderOrder={1}>
+        <pointsMaterial color={INK.ink} size={7} sizeAttenuation={false} depthWrite={false} toneMapped={false} />
+      </points>
+      <points geometry={all.geometry} onClick={onClick} renderOrder={2}>
+        <pointsMaterial vertexColors size={5} sizeAttenuation={false} depthWrite={false} toneMapped={false} />
       </points>
       {selected.owners.length > 0 && (
-        <points geometry={selected.geometry} raycast={() => null}>
-          <pointsMaterial vertexColors size={10} sizeAttenuation={false} depthWrite={false} />
-        </points>
+        <>
+          <points geometry={selected.geometry} raycast={() => null} renderOrder={3}>
+            <pointsMaterial color={INK.ink} size={13} sizeAttenuation={false} depthWrite={false} toneMapped={false} />
+          </points>
+          <points geometry={selected.geometry} raycast={() => null} renderOrder={4}>
+            <pointsMaterial color={INK.mark} size={9} sizeAttenuation={false} depthWrite={false} toneMapped={false} />
+          </points>
+        </>
       )}
     </group>
   );
