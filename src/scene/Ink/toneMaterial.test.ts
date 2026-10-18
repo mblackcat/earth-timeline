@@ -63,6 +63,11 @@ describe("createToneMaterial", () => {
     const m = createToneMaterial({ base: INK.sheet, mode: "tone", dots: false });
     expect(m.userData.tone.uDots.value).toBe(0);
   });
+
+  it("density scales darkness (defaults to 1)", () => {
+    expect(createToneMaterial({ base: INK.paper, mode: "tone" }).userData.tone.uDensity.value).toBe(1);
+    expect(createToneMaterial({ base: INK.paper, mode: "tone", density: 0.45 }).userData.tone.uDensity.value).toBe(0.45);
+  });
 });
 
 describe("createOutlineMaterial", () => {

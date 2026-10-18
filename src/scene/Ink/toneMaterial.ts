@@ -26,6 +26,8 @@ export interface ToneOptions {
   land?: string;
   /** false：tone 档也不画网点（LOD1 小模型，避免噪点）。 */
   dots?: boolean;
+  /** 暗度倍率（0–1）：背景类表面（观察窗地面）调淡，突出前景模型。 */
+  density?: number;
 }
 
 const VERT_PARS = /* glsl */ `
@@ -36,6 +38,7 @@ const FRAG_PARS = /* glsl */ `
 uniform int uToneMode;
 uniform float uCell;
 uniform float uDots;
+uniform float uDensity;
 uniform vec3 uInk;
 uniform vec3 uLightDir;
 uniform vec3 uLand;
@@ -61,7 +64,7 @@ float inkHalftone(float d) {
 vec3 inkShade(vec3 base, vec3 n) {
   float lit = clamp(dot(n, uLightDir), 0.0, 1.0);
   // 暗度 0.15–1.0：亮侧仍有细网点，海洋才能与纸白的陆地区分
-  float d = 0.15 + 0.85 * (1.0 - lit);
+  float d = (0.15 + 0.85 * (1.0 - lit)) * uDensity;
   float land = 0.0;
   if (uHasMask > 0.5) {
     vec3 q = normalize(vInkObjPos);
@@ -70,7 +73,7 @@ vec3 inkShade(vec3 base, vec3 n) {
     base = mix(base, uLand, land);
   }
   if (uToneMode == 0) return base;
-  if (uToneMode == 2) return mix(base, uInk, d * mix(0.55, 0.25, land));
+  if (uToneMode == 2) return mix(base, uInk, d * mix(0.75, 0.25, land));
   // tone：陆地只在背光侧叠很淡的网点；海洋网点 + 边缘涂黑
   float dl = land > 0.5 ? max(0.0, d - 0.55) * 0.5 : d;
   // 导数（fwidth）放在分支之外，避免非一致控制流
@@ -80,7 +83,7 @@ vec3 inkShade(vec3 base, vec3 n) {
 }
 `;
 
-export function createToneMaterial({ base, mode, landMask = null, land = INK.sheet, dots = true }: ToneOptions): MeshLambertMaterial {
+export function createToneMaterial({ base, mode, landMask = null, land = INK.sheet, dots = true, density = 1 }: ToneOptions): MeshLambertMaterial {
   const mat = new MeshLambertMaterial({
     color: base,
     flatShading: true,
@@ -92,6 +95,7 @@ export function createToneMaterial({ base, mode, landMask = null, land = INK.she
   const own = {
     uToneMode: { value: MODE_INDEX[mode] },
     uDots: { value: dots ? 1 : 0 },
+    uDensity: { value: density },
     uLand: { value: new Color(land) },
     uHasMask: { value: landMask ? 1 : 0 },
     uLandMask: { value: landMask as Texture | null },

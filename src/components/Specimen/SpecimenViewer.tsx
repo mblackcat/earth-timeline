@@ -54,7 +54,7 @@ export function SpecimenViewer() {
         </button>
       </div>
       <div className="specimen-canvas">
-        <Canvas key={id} dpr={lowPerformance ? 1 : [1, 2]} camera={{ fov: 40, near: asset.sizeM * 0.05, far: asset.sizeM * 400, position: [asset.sizeM * 3, asset.sizeM * 1.8, asset.sizeM * 4] }}>
+        <Canvas key={id} flat dpr={lowPerformance ? 1 : [1, 2]} camera={{ fov: 40, near: asset.sizeM * 0.05, far: asset.sizeM * 400, position: [asset.sizeM * 3, asset.sizeM * 1.8, asset.sizeM * 4] }}>
           <SpecimenScene asset={asset} clipMode={clipMode} onLodChange={setLod} />
         </Canvas>
       </div>

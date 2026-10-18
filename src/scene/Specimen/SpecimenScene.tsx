@@ -19,6 +19,8 @@ import { useAnimationClock } from "../Models/animationClock";
 import { useRigs } from "../Models/useRig";
 import type { Lod } from "../Models/rig";
 import { INK } from "../Ink/inkPalette";
+import { createToneMaterial, setToneMode } from "../Ink/toneMaterial";
+import { ToneSync } from "../Ink/ToneSync";
 
 /**
  * 近距离观察的局部场景（TASKS 风险 R1）：独立的米制坐标系，模型使用真实体长，
@@ -36,6 +38,7 @@ function herdSize(asset: VisualizationAsset, lowPerformance: boolean): number {
 }
 
 function Terrain({ half, asset }: { half: number; asset: VisualizationAsset }) {
+  const style = useSettingsStore((s) => s.visualStyle);
   const water = asset.locomotion === "swim";
   const amp = asset.sizeM * (water ? 0.25 : 0.12);
   const height = useMemo(() => makeHeightField(amp, half * 0.9, 7), [amp, half]);
@@ -57,21 +60,19 @@ function Terrain({ half, asset }: { half: number; asset: VisualizationAsset }) {
     },
     [ground, contours],
   );
+  const groundMat = useMemo(() => createToneMaterial({ base: INK.paper, mode: "tone", density: 0.45 }), []);
+  useEffect(() => setToneMode(groundMat, style), [groundMat, style]);
+  useEffect(() => () => groundMat.dispose(), [groundMat]);
   return (
     <group name="terrain">
-      <mesh geometry={ground}>
-        <meshStandardMaterial color={water ? "#0b1d2c" : "#141c18"} flatShading roughness={1} polygonOffset polygonOffsetFactor={2} polygonOffsetUnits={2} />
-      </mesh>
-      <mesh geometry={ground}>
-        <meshBasicMaterial color={INK.rule} wireframe transparent opacity={0.25} />
-      </mesh>
+      <mesh geometry={ground} material={groundMat} />
       <lineSegments geometry={contours}>
-        <lineBasicMaterial color={water ? "#3f7fa0" : "#6f8a5a"} transparent opacity={0.8} />
+        <lineBasicMaterial color={INK.rule} toneMapped={false} />
       </lineSegments>
       {water && (
         <mesh position={[0, asset.sizeM * 1.6, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[half * 2, half * 2, 12, 12]} />
-          <meshBasicMaterial color="#3a8fbf" wireframe transparent opacity={0.18} />
+          <meshBasicMaterial color={INK.ink3} wireframe transparent opacity={0.25} toneMapped={false} />
         </mesh>
       )}
     </group>
@@ -157,8 +158,7 @@ export function SpecimenScene({ asset, clipMode, onLodChange }: { asset: Visuali
   return (
     <>
       <color attach="background" args={[INK.paper]} />
-      <ambientLight intensity={0.7} />
-      <directionalLight position={[3, 6, 4]} intensity={1.3} />
+      <ToneSync />
       <Terrain half={half} asset={asset} />
       <Herd asset={asset} half={half} clipMode={clipMode} lod={lod} />
       <OrbitControls
