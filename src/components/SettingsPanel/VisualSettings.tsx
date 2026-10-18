@@ -21,9 +21,9 @@ export function VisualSettings({ Group }: { Group: GroupComponent }) {
               模型风格
             </label>
             <select id="visual-style" value={s.visualStyle} onChange={(e) => s.setVisualStyle(e.target.value as VisualStyle)} data-testid="visual-style">
-              <option value="hybrid">线稿 + 实体</option>
-              <option value="wireframe">3D 线稿</option>
-              <option value="solid">纯色低多边形</option>
+              <option value="tone">线稿 + 网点</option>
+              <option value="line">线稿</option>
+              <option value="plain">白模</option>
             </select>
           </div>
           <div className="field">
@@ -43,7 +43,7 @@ export function VisualSettings({ Group }: { Group: GroupComponent }) {
           {toggle("生物动画", s.animationsEnabled, s.setAnimationsEnabled, "toggle-animations")}
           {toggle("时间暂停时继续 Idle", s.idleWhenPaused, s.setIdleWhenPaused, "toggle-idle-paused", "暂停历史时间时，生物是否继续呼吸、摆头等动作")}
           {toggle("简单行为（漫游、进食）", s.behaviorEnabled, s.setBehaviorEnabled, "toggle-behavior")}
-          {toggle("低性能模式", s.lowPerformance, s.setLowPerformance, "toggle-low-perf", "降低分辨率与动画更新频率，减少模型数量，隐藏星空")}
+          {toggle("低性能模式", s.lowPerformance, s.setLowPerformance, "toggle-low-perf", "降低分辨率与动画更新频率，减少模型数量")}
         </div>
       </Group>
     </>

@@ -138,7 +138,7 @@ export interface VisualizationAsset {
   /** 移动方式，决定"移动"动画。 */
   locomotion: "crawl" | "swim" | "walk" | "fly" | "none";
   preferredLod: 0 | 1 | 2;
-  style: "wireframe" | "solid" | "hybrid";
+  style: "line" | "tone" | "plain";
   /** 外形的说明：程序化模型是示意性的，不是精确复原。 */
   note: string;
 }

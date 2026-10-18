@@ -11,7 +11,7 @@ import { SpecimenScene, type ClipMode } from "../../scene/Specimen/SpecimenScene
 import { formatYearsSpan } from "../../timeline/CalendarAdapter";
 
 const CLIP_LABELS: Record<AnimationClipName, string> = { idle: "Idle", move: "移动", eat: "进食" };
-const STYLE_LABELS: Record<VisualStyle, string> = { wireframe: "线稿", solid: "实体", hybrid: "混合" };
+const STYLE_LABELS: Record<VisualStyle, string> = { line: "线稿", tone: "线稿+网点", plain: "白模" };
 
 function formatSize(m: number): string {
   return m >= 1 ? `${m.toLocaleString("zh-CN")} 米` : `${(m * 100).toLocaleString("zh-CN")} 厘米`;

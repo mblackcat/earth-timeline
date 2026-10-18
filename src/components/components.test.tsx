@@ -55,18 +55,22 @@ describe("SettingsPanel", () => {
 });
 
 describe("Visual and animation settings", () => {
+  it("visual style defaults to tone", () => {
+    expect(useSettingsStore.getInitialState().visualStyle).toBe("tone");
+  });
+
   it("apply to the settings store without touching time or camera", () => {
     useSettingsStore.setState({ panelOpen: true });
     render(<SettingsPanel />);
     const before = { t: useTimeStore.getState().currentTimeYearsAgo, cam: useViewStore.getState().command };
-    fireEvent.change(screen.getByTestId("visual-style"), { target: { value: "wireframe" } });
+    fireEvent.change(screen.getByTestId("visual-style"), { target: { value: "line" } });
     fireEvent.change(screen.getByTestId("model-detail"), { target: { value: "low" } });
     fireEvent.click(screen.getByTestId("toggle-animations"));
     fireEvent.click(screen.getByTestId("toggle-idle-paused"));
     fireEvent.click(screen.getByTestId("toggle-behavior"));
     fireEvent.click(screen.getByTestId("toggle-low-perf"));
     expect(useSettingsStore.getState()).toMatchObject({
-      visualStyle: "wireframe",
+      visualStyle: "line",
       modelDetail: "low",
       animationsEnabled: false,
       idleWhenPaused: false,

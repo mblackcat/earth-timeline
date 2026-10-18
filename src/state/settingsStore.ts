@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { ScaleKind } from "../timeline/TimeScale";
 
-export type VisualStyle = "wireframe" | "solid" | "hybrid";
+export type VisualStyle = "line" | "tone" | "plain";
 export type ModelDetail = "auto" | "low" | "high";
 
 /** 集中管理的用户设置（PLAN §7）。只影响显示，不修改模拟时间或相机。 */
@@ -25,7 +25,7 @@ export interface SettingsState {
   idleWhenPaused: boolean;
   /** 简单行为（漫游、进食）。关闭后生物原地播放 Idle。 */
   behaviorEnabled: boolean;
-  /** 低性能模式：降低分辨率与动画更新频率，减少模型数量，隐藏星空。 */
+  /** 低性能模式：降低分辨率与动画更新频率，减少模型数量。 */
   lowPerformance: boolean;
   /** 时间轴刻度：分段压缩 / 线性。 */
   timelineScale: ScaleKind;
@@ -54,7 +54,7 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
   showModernReference: true,
   showEventMarkers: true,
   showFossilSites: true,
-  visualStyle: "hybrid",
+  visualStyle: "tone",
   modelDetail: "auto",
   animationsEnabled: true,
   idleWhenPaused: true,

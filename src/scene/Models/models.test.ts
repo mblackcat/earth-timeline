@@ -28,8 +28,8 @@ describe("visual assets", () => {
 
 describe("procedural models", () => {
   it.each(VISUALS.map((v) => [v.id, v] as const))("%s builds at both LODs; LOD1 is simpler", (_id, v) => {
-    const r0 = buildRig(v, 0, "hybrid");
-    const r1 = buildRig(v, 1, "hybrid");
+    const r0 = buildRig(v, 0, "tone");
+    const r1 = buildRig(v, 1, "tone");
     expect(count(r0.root, Mesh)).toBeGreaterThan(3);
     expect(r0.height).toBeGreaterThan(0);
     let tris0 = 0;
@@ -41,19 +41,19 @@ describe("procedural models", () => {
     r1.dispose();
   });
 
-  it("styles: solid has no edge lines; hybrid and wireframe outline every part", () => {
+  it("styles: plain has no edge lines; tone and line outline every part", () => {
     const v = VISUAL_BY_ID["viz-tyrannosaurus"]!;
-    const solid = buildRig(v, 0, "solid");
-    const hybrid = buildRig(v, 0, "hybrid");
-    expect(count(solid.root, LineSegments)).toBe(0);
-    expect(count(hybrid.root, LineSegments)).toBe(count(hybrid.root, Mesh));
+    const plain = buildRig(v, 0, "plain");
+    const tone = buildRig(v, 0, "tone");
+    expect(count(plain.root, LineSegments)).toBe(0);
+    expect(count(tone.root, LineSegments)).toBe(count(tone.root, Mesh));
   });
 
   it("edge lines are a subset of mesh edges (not every triangle edge), and sparser at LOD1", () => {
     const v = VISUAL_BY_ID["viz-mammoth"]!;
     const segs = (lod: 0 | 1) => {
       let n = 0;
-      buildRig(v, lod, "wireframe").root.traverse((o) => o instanceof LineSegments && (n += o.geometry.getAttribute("position").count / 2));
+      buildRig(v, lod, "line").root.traverse((o) => o instanceof LineSegments && (n += o.geometry.getAttribute("position").count / 2));
       return n;
     };
     expect(segs(1)).toBeLessThan(segs(0));
@@ -62,7 +62,7 @@ describe("procedural models", () => {
 
 describe("animation", () => {
   it("clips move joints, are deterministic for a given time and fully reversible", () => {
-    const rig = buildRig(VISUAL_BY_ID["viz-tyrannosaurus"]!, 0, "solid");
+    const rig = buildRig(VISUAL_BY_ID["viz-tyrannosaurus"]!, 0, "plain");
     const rest = pose(rig);
     applyClip(rig, "theropod", "move", 1.234);
     const walking = pose(rig);
@@ -74,7 +74,7 @@ describe("animation", () => {
   });
 
   it("falls back to idle for clips an archetype does not have", () => {
-    const rig = buildRig(VISUAL_BY_ID["viz-cooksonia"]!, 0, "solid");
+    const rig = buildRig(VISUAL_BY_ID["viz-cooksonia"]!, 0, "plain");
     expect(applyClip(rig, "plant", "move", 1)).toBe("idle");
   });
 

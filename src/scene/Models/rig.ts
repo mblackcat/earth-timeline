@@ -21,7 +21,7 @@ import {
  */
 
 export type Lod = 0 | 1;
-export type Style = "wireframe" | "solid" | "hybrid";
+export type Style = "line" | "tone" | "plain";
 
 /** 模型：根节点 + 具名关节（动画只旋转 / 缩放关节）+ 关节的静止姿态。 */
 export interface Rig {
@@ -110,9 +110,9 @@ export class RigBuilder {
 
 /** 折边阈值：LOD0 显示适度的内部边线，LOD1 只保留明显轮廓（PLAN §6.3）。 */
 const EDGE_THRESHOLD_DEG: Record<Style, Record<Lod, number>> = {
-  wireframe: { 0: 20, 1: 40 },
-  hybrid: { 0: 28, 1: 50 },
-  solid: { 0: 90, 1: 90 },
+  line: { 0: 28, 1: 50 },
+  tone: { 0: 28, 1: 50 },
+  plain: { 0: 90, 1: 90 },
 };
 const FILL_DARK = "#0b111c";
 
@@ -121,7 +121,7 @@ function applyStyle(parts: { mesh: Mesh; tone: PartSpec["tone"] }[], style: Styl
     const base = new Color(tone === "body" ? color : accent);
     // 填充：实体 / 混合用固有色；线稿用深色填充，只遮挡背面线条
     const fill = new MeshStandardMaterial({
-      color: style === "wireframe" ? new Color(FILL_DARK) : base,
+      color: style === "line" ? new Color(FILL_DARK) : base,
       flatShading: true,
       roughness: 0.9,
       metalness: 0,
@@ -130,9 +130,9 @@ function applyStyle(parts: { mesh: Mesh; tone: PartSpec["tone"] }[], style: Styl
       polygonOffsetUnits: 1,
     });
     mesh.material = fill;
-    if (style === "solid") continue;
+    if (style === "plain") continue;
     // 线稿：明亮的强调色线条（深色背景下可辨认）；混合：固有色压暗的轮廓
-    const lineColor = style === "wireframe" ? base.clone().lerp(new Color("#ffffff"), 0.55) : base.clone().multiplyScalar(0.45);
+    const lineColor = style === "line" ? base.clone().lerp(new Color("#ffffff"), 0.55) : base.clone().multiplyScalar(0.45);
     const edges = new LineSegments(
       new EdgesGeometry(mesh.geometry, EDGE_THRESHOLD_DEG[style][lod]),
       new LineBasicMaterial({ color: lineColor }),
