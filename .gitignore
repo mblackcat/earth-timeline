@@ -31,3 +31,6 @@ npm-debug.log*
 # 调试截图
 *.png
 !public/**/*.png
+
+# brainstorming mockups
+.superpowers/
