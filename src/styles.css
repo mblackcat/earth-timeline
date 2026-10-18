@@ -173,7 +173,7 @@ input:focus-visible {
   gap: 6px;
   width: 100%;
   border: none;
-  border-radius: 6px 6px 0 0;
+  border-radius: 0;
   background: transparent;
   font-weight: 600;
   text-align: left;
@@ -453,7 +453,7 @@ input:focus-visible {
   width: 30px;
   height: 40px;
   padding: 0;
-  border-radius: 6px 0 0 6px;
+  border-radius: 0;
   border-right: none;
   font-size: 18px;
   z-index: 2;
