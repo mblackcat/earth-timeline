@@ -89,3 +89,16 @@ describe("Help", () => {
     expect(screen.queryByTestId("help-popover")).toBeNull();
   });
 });
+
+describe("TopBar period path", () => {
+  afterEach(() => useTimeStore.setState({ currentTimeYearsAgo: 0 }));
+  it("renders each rank as a span, marks the finest one, keeps the joined text", () => {
+    useTimeStore.setState({ currentTimeYearsAgo: 66_500_000 });
+    render(<TopBar />);
+    const period = screen.getByTestId("current-period");
+    expect(period.textContent).toBe("显生宙 · 中生代 · 白垩纪 · 晚白垩世");
+    const spans = period.querySelectorAll("[data-rank]");
+    expect(spans.length).toBe(4);
+    expect(spans[spans.length - 1]).toHaveClass("current");
+  });
+});

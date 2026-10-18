@@ -87,22 +87,33 @@ input:focus-visible {
 }
 .brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   white-space: nowrap;
 }
+.brand-mark {
+  width: 22px;
+  height: 22px;
+  background: var(--ink);
+  flex-shrink: 0;
+}
 .brand-title {
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-family: var(--serif);
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--ink);
 }
 .brand-sub {
+  font-size: 10px;
+  letter-spacing: 0.18em;
   color: var(--ink-3);
-  font-size: 13px;
 }
 .top-time {
   font-variant-numeric: tabular-nums;
-  color: var(--mark);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
   white-space: nowrap;
 }
 .top-view {
@@ -733,6 +744,11 @@ input[type="number"] {
   stroke: var(--paper);
   stroke-width: 0.5;
 }
+.tl-unit-current {
+  stroke: var(--mark);
+  stroke-width: 2;
+  pointer-events: none;
+}
 .tl-unit-label {
   fill: var(--ink);
   font-size: 10px;
@@ -750,7 +766,7 @@ input[type="number"] {
 }
 .tl-indicator line {
   stroke: var(--mark);
-  stroke-width: 2;
+  stroke-width: 1.5;
 }
 .tl-indicator path {
   fill: var(--mark);
@@ -764,11 +780,14 @@ input[type="number"] {
   transform: rotate(45deg);
 }
 .top-period {
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.top-period .current {
+  color: var(--mark);
 }
 
 /* 灰色桌面 + 1px 墨色外框 */

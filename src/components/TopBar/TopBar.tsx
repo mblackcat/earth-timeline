@@ -1,7 +1,8 @@
 import { useTimeStore } from "../../state/timeStore";
 import { useViewStore } from "../../state/viewStore";
 import { HelpButton } from "../Help/HelpButton";
-import { describeGeoPeriod } from "../../data/geology/timescale";
+import { useMemo } from "react";
+import { GEO_RANKS, describeGeoPeriod, geoPathAt } from "../../data/geology/timescale";
 import { formatTime } from "../../timeline/CalendarAdapter";
 import { EARTH_RADIUS_KM, LEVEL_LABELS } from "../../utils/geo";
 
@@ -17,8 +18,9 @@ export function TopBar() {
   return (
     <header className="top-bar">
       <div className="brand">
-        <span className="brand-title">Earth Through Time</span>
-        <span className="brand-sub">地球时空演化图谱</span>
+        <span className="brand-mark" aria-hidden="true" />
+        <span className="brand-title">地球时空演化图谱</span>
+        <span className="brand-sub">EARTH THROUGH TIME</span>
       </div>
       <div className="top-time" data-testid="current-time">
         {formatTime(yearsAgo)}
@@ -48,12 +50,25 @@ export function TopBar() {
   );
 }
 
-/** 当前历史时期（ICS 宙/代/纪/世）。只在所属单位变化时更新文本。 */
+/** 当前历史时期（ICS 宙/代/纪/世）。最细一级用红笔标出。 */
 function GeoPeriod() {
+  // 只在所属单位变化时重渲染
   const text = useTimeStore((s) => describeGeoPeriod(s.currentTimeYearsAgo));
+  const units = useMemo(() => {
+    const path = geoPathAt(useTimeStore.getState().currentTimeYearsAgo);
+    return GEO_RANKS.flatMap((r) => (path[r] ? [{ rank: r, name: path[r]!.name }] : []));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text]);
   return (
-    <div className="top-period" data-testid="current-period" title="当前地质年代（ICS v2024/12）">
-      {text}
+    <div className="top-period" data-testid="current-period" data-text={text} title="当前地质年代（ICS v2024/12）">
+      {units.map((u, i) => (
+        <span key={u.rank}>
+          {i > 0 && " · "}
+          <span data-rank={u.rank} className={i === units.length - 1 ? "current" : undefined}>
+            {u.name}
+          </span>
+        </span>
+      ))}
     </div>
   );
 }
