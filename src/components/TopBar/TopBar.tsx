@@ -1,8 +1,7 @@
 import { useTimeStore } from "../../state/timeStore";
 import { useViewStore } from "../../state/viewStore";
 import { HelpButton } from "../Help/HelpButton";
-import { useMemo } from "react";
-import { GEO_RANKS, describeGeoPeriod, geoPathAt } from "../../data/geology/timescale";
+import { GEO_UNIT_BY_ID, geoPathAt } from "../../data/geology/timescale";
 import { formatTime } from "../../timeline/CalendarAdapter";
 import { EARTH_RADIUS_KM, LEVEL_LABELS } from "../../utils/geo";
 
@@ -50,17 +49,12 @@ export function TopBar() {
   );
 }
 
-/** 当前历史时期（ICS 宙/代/纪/世）。最细一级用红笔标出。 */
+/** 当前历史时期（ICS 宙/代/纪/世）。最细一级用红笔标出；只在所属单位变化时重渲染。 */
 function GeoPeriod() {
-  // 只在所属单位变化时重渲染
-  const text = useTimeStore((s) => describeGeoPeriod(s.currentTimeYearsAgo));
-  const units = useMemo(() => {
-    const path = geoPathAt(useTimeStore.getState().currentTimeYearsAgo);
-    return GEO_RANKS.flatMap((r) => (path[r] ? [{ rank: r, name: path[r]!.name }] : []));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [text]);
+  const key = useTimeStore((s) => Object.values(geoPathAt(s.currentTimeYearsAgo)).map((u) => u!.id).join("|"));
+  const units = key ? key.split("|").map((id) => GEO_UNIT_BY_ID[id]!) : [];
   return (
-    <div className="top-period" data-testid="current-period" data-text={text} title="当前地质年代（ICS v2024/12）">
+    <div className="top-period" data-testid="current-period" title="当前地质年代（ICS v2024/12）">
       {units.map((u, i) => (
         <span key={u.rank}>
           {i > 0 && " · "}

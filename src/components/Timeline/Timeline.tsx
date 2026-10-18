@@ -323,21 +323,21 @@ export function Timeline({ leading }: { leading?: ReactNode }) {
               {row.units.map(({ unit, x0, x1 }) => {
                 const isCurrent = currentIds.has(unit.id);
                 return (
-                <g key={unit.id} data-unit-id={unit.id} className={`tl-unit${isCurrent ? " current" : ""}`}>
-                  <rect x={GUTTER + x0} y={0} width={x1 - x0} height={ROW_H - 1} fill={mixHex(unit.color, INK.paper, 0.45)}>
-                    <title>
-                      {`${unit.name}（${unit.nameEn}）${formatTick(unit.range.fromYearsAgo, unit.range.fromYearsAgo)} – ${formatTick(unit.range.toYearsAgo, unit.range.fromYearsAgo)}${unit.approximate ? "（含近似边界）" : ""}\n点击缩放到该时期`}
-                    </title>
-                  </rect>
-                  {isCurrent && (
-                    <line className="tl-unit-current" x1={GUTTER + x0} x2={GUTTER + x1} y1={ROW_H - 1.5} y2={ROW_H - 1.5} />
-                  )}
-                  {x1 - x0 > unit.name.length * 11 + 6 && (
-                    <text x={GUTTER + (x0 + x1) / 2} y={ROW_H - 4} textAnchor="middle" className="tl-unit-label">
-                      {unit.name}
-                    </text>
-                  )}
-                </g>
+                  <g key={unit.id} data-unit-id={unit.id} className={`tl-unit${isCurrent ? " current" : ""}`}>
+                    <rect x={GUTTER + x0} y={0} width={x1 - x0} height={ROW_H - 1} fill={mixHex(unit.color, INK.paper, 0.45)}>
+                      <title>
+                        {`${unit.name}（${unit.nameEn}）${formatTick(unit.range.fromYearsAgo, unit.range.fromYearsAgo)} – ${formatTick(unit.range.toYearsAgo, unit.range.fromYearsAgo)}${unit.approximate ? "（含近似边界）" : ""}\n点击缩放到该时期`}
+                      </title>
+                    </rect>
+                    {isCurrent && (
+                      <line className="tl-unit-current" x1={GUTTER + x0} x2={GUTTER + x1} y1={ROW_H - 1.5} y2={ROW_H - 1.5} />
+                    )}
+                    {x1 - x0 > unit.name.length * 11 + 6 && (
+                      <text x={GUTTER + (x0 + x1) / 2} y={ROW_H - 4} textAnchor="middle" className="tl-unit-label">
+                        {unit.name}
+                      </text>
+                    )}
+                  </g>
                 );
               })}
             </g>
