@@ -29,16 +29,16 @@ async function canvasStats(page: Page) {
     ctx.drawImage(img, 0, 0);
     const { data } = ctx.getImageData(0, 0, c.width, c.height);
     let lit = 0;
-    let cyan = 0;
+    let ink = 0;
     let hash = 0;
     for (let i = 0; i < data.length; i += 4) {
       const [r, g, b] = [data[i]!, data[i + 1]!, data[i + 2]!];
       if (r + g + b > 40) lit++;
-      if (g > 120 && b > 110 && r < 140) cyan++;
+      if (r < 60 && g < 60 && b < 60) ink++; // 墨色（海岸线、网点、涂黑）
       if (i % 388 === 0) hash = (hash * 31 + r + g * 7 + b * 13) >>> 0;
     }
     const canvas = document.querySelector("canvas")!;
-    return { width: canvas.clientWidth, height: canvas.clientHeight, litRatio: lit / (data.length / 4), cyan, hash };
+    return { width: canvas.clientWidth, height: canvas.clientHeight, litRatio: lit / (data.length / 4), ink, hash };
   }, png.toString("base64"));
 }
 
@@ -83,8 +83,8 @@ test("renders a real WebGL globe with coastlines", async ({ page }) => {
   });
   expect(hasWebGL).toBe(true);
   const stats = await canvasStats(page);
-  expect(stats.litRatio).toBeGreaterThan(0.1); // 地球与大气占据可观面积
-  expect(stats.cyan).toBeGreaterThan(200); // 青色海岸线像素
+  expect(stats.litRatio).toBeGreaterThan(0.5); // 纸色背景几乎全亮
+  expect(stats.ink).toBeGreaterThan(2000); // 海岸线、网点与涂黑
   await expect(page.getByTestId("view-level")).toHaveAttribute("data-level", "0");
   await expect(page.getByTestId("geo-caption")).toContainText("示意数据");
 });
@@ -189,8 +189,9 @@ test("window resize updates the render size", async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 600 });
   await page.waitForTimeout(400);
   const small = await canvasStats(page);
-  expect(small.width).toBe(900 - 300);
-  expect(small.height).toBe(600 - 52 - 88);
+  // 外框：桌面边距 8px + 1px 墨框（两侧）
+  expect(small.width).toBe(900 - 18 - 300);
+  expect(small.height).toBe(600 - 18 - 52 - 164);
   expect(small.litRatio).toBeGreaterThan(0.05);
   const drawing = await page.evaluate(() => {
     const c = document.querySelector("canvas")!;
@@ -200,14 +201,15 @@ test("window resize updates the render size", async ({ page }) => {
 });
 
 test("layer toggles hide and show scene content", async ({ page }) => {
-  const withLines = (await canvasStats(page)).cyan;
+  // 网点与涂黑不随海岸线开关变化，只比较墨色像素的减少
+  const withLines = (await canvasStats(page)).ink;
   await page.getByTestId("toggle-outlines").click();
   await page.waitForTimeout(300);
-  expect((await canvasStats(page)).cyan).toBeLessThan(withLines / 5);
+  expect((await canvasStats(page)).ink).toBeLessThan(withLines * 0.97);
   await expect(page.getByTestId("geo-caption")).toHaveCount(0);
   await page.getByTestId("toggle-outlines").click();
   await page.waitForTimeout(300);
-  expect((await canvasStats(page)).cyan).toBeGreaterThan(withLines * 0.8);
+  expect((await canvasStats(page)).ink).toBeGreaterThan(withLines * 0.98);
 });
 
 test("double-click on the globe flies toward that point and zooms in", async ({ page }) => {
