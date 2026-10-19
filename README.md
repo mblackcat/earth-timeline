@@ -1,8 +1,10 @@
 # Earth Timeline · 地球时空演化图谱
 
-Web 端交互式 3D 地球历史探索应用。产品需求与实施规范见 [`PLAN.md`](PLAN.md)，任务进度、架构说明与已知问题见 [`TASKS.md`](TASKS.md)，**接力开发请先读 [`HANDOFF.md`](HANDOFF.md)**。
+Web 端交互式 3D 地球历史探索应用。在线访问：**https://mblackcat.github.io/earth-timeline/**
 
-> 当前进度：Phase 0–7 主体完成（地球与相机、时间引擎、时间轴、历史事件与代表性生物、生物模型与动画、0–18 亿年古地理）；Phase 8（优化与发布）未开始。
+产品需求与实施规范见 [`PLAN.md`](PLAN.md)，任务进度、架构说明与已知问题见 [`TASKS.md`](TASKS.md)，**接力开发请先读 [`HANDOFF.md`](HANDOFF.md)**。
+
+> 当前进度：Phase 0–7 主体完成（地球与相机、时间引擎、时间轴、历史事件与代表性生物、生物模型与动画、0–18 亿年古地理），界面为"纸面墨线 + 漫画网点"风格；v0.1.0 已发布到 GitHub Pages。
 
 ## 环境要求
 
@@ -34,6 +36,19 @@ npm run dev          # http://localhost:5173
 npx playwright install chromium
 E2E_BROWSER_CHANNEL=chromium npm run test:e2e
 ```
+
+## 发布
+
+在 main 上打 `v*` 标签即自动发布到 GitHub Pages（`.github/workflows/deploy-pages.yml`：typecheck + lint + 单元测试 → 以 `/earth-timeline/` 为 base 构建 → 部署）：
+
+```bash
+git tag -a v0.2.0 -m "v0.2.0: 说明"
+git push origin v0.2.0
+```
+
+- 标签必须指向 main 上的提交，否则工作流拒绝发布。
+- 也可在 GitHub Actions 页面手动运行该工作流（从 main）。
+- 本地验证子路径构建：`VITE_BASE=/earth-timeline/ npx vite build && VITE_BASE=/earth-timeline/ npx vite preview`，访问 `http://localhost:4173/earth-timeline/`。
 
 ## 操作方式
 

@@ -41,6 +41,9 @@ Phase 0–7 主体完成：可交互 3D 地球 + 统一时间引擎 + 多尺度�
 
 ```bash
 npm run dev | build | preview | typecheck | lint
+
+# 发布：main 上打 v* 标签 → GitHub Actions 自动部署到 https://mblackcat.github.io/earth-timeline/
+git tag -a v0.2.0 -m "…" && git push origin v0.2.0
 npm test                      # Vitest（jsdom）
 npm run test:e2e              # Playwright（自动复用 5173 上的 dev server）
 npx playwright test e2e/timeline.spec.ts   # 单个 spec
@@ -103,7 +106,7 @@ UI（React DOM）  components/  TopBar · Help · SettingsPanel(播放/时间轴
 ## 6. 下一步（建议顺序）
 
 ### 改版收尾
-- 分支 `ink-tone-redesign` 待用户决定合并方式；用户会单独提出视觉细节优化（网点粗细、涂黑面积、线宽等，参数集中在 `scene/Ink/toneMaterial.ts` 与 `inkPalette.ts`）。
+- 已合并 main，v0.1.0 已发布到 GitHub Pages（仓库已改为公开）；用户会单独提出视觉细节优化（网点粗细、涂黑面积、线宽等，参数集中在 `scene/Ink/toneMaterial.ts` 与 `inkPalette.ts`）。
 
 ### Phase 8（优化与发布）
 1. ~~跑全部 e2e 并修复~~：2026-10-19 已完成，16/16 通过。
