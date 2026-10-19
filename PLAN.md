@@ -1,8 +1,8 @@
-# Earth Through Time
+# Earth Timeline
 ## 地球时空演化图谱 — 产品与技术实施 Plan
 
 **文档类型：** 产品需求说明 + 技术设计 + 开发实施计划  
-**项目代号：** Earth Through Time  
+**项目代号：** Earth Timeline（原名 Earth Through Time）  
 **产品形态：** Web 端交互式 3D 地球历史探索应用  
 **目标执行者：** Codex、Claude Code 或其他具备代码执行能力的编程 Agent  
 **文档版本：** v1.0  

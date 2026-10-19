@@ -1,4 +1,4 @@
-# Earth Through Time — 开发任务清单 (TASKS.md)
+# Earth Timeline — 开发任务清单 (TASKS.md)
 
 > 依据：`PLAN.md` v1.0（产品需求与实施规范，核心目标不变）。
 > 状态标记：`[ ]` 未开始 · `[~]` 进行中 / 部分完成 · `[x]` 已完成并通过测试 · `[!]` 阻塞 / 需决策

@@ -1,4 +1,4 @@
-# Earth Through Time · 地球时空演化图谱
+# Earth Timeline · 地球时空演化图谱
 
 Web 端交互式 3D 地球历史探索应用。产品需求与实施规范见 [`PLAN.md`](PLAN.md)，任务进度、架构说明与已知问题见 [`TASKS.md`](TASKS.md)，**接力开发请先读 [`HANDOFF.md`](HANDOFF.md)**。
 

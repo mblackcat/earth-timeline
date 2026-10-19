@@ -19,7 +19,7 @@ export function TopBar() {
       <div className="brand">
         <span className="brand-mark" aria-hidden="true" />
         <span className="brand-title">地球时空演化图谱</span>
-        <span className="brand-sub">EARTH THROUGH TIME</span>
+        <span className="brand-sub">EARTH TIMELINE</span>
       </div>
       <div className="top-time" data-testid="current-time">
         {formatTime(yearsAgo)}
