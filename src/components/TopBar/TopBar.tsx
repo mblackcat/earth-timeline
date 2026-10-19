@@ -17,7 +17,7 @@ export function TopBar() {
   return (
     <header className="top-bar">
       <div className="brand">
-        <span className="brand-mark" aria-hidden="true" />
+        <img className="brand-mark" src={`${import.meta.env.BASE_URL}logo-globe.png`} alt="" aria-hidden="true" />
         <span className="brand-title">地球时空演化图谱</span>
         <span className="brand-sub">EARTH TIMELINE</span>
       </div>

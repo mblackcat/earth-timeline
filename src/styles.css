@@ -92,9 +92,8 @@ input:focus-visible {
   white-space: nowrap;
 }
 .brand-mark {
-  width: 22px;
-  height: 22px;
-  background: var(--ink);
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
 }
 .brand-title {
