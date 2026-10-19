@@ -14,6 +14,8 @@ export interface GeographyState {
   loadState: "idle" | "loading" | "ready" | "error";
   error: string | null;
   outlines: LonLat[][] | null;
+  /** 与 outlines 逐点对应：各顶点在切片形变目标年代的位置（板块漂移插值）；没有时不形变。 */
+  next: LonLat[][] | null;
 }
 
 export const useGeographyStore = create<GeographyState>()(() => ({
@@ -23,6 +25,7 @@ export const useGeographyStore = create<GeographyState>()(() => ({
   loadState: "idle",
   error: null,
   outlines: null,
+  next: null,
 }));
 
 /**
@@ -46,14 +49,14 @@ export function startGeographySync(
     }
     currentSliceId = sliceId;
     if (!slice) {
-      geoStore.setState({ status, message, slice: null, loadState: "idle", error: null, outlines: null });
+      geoStore.setState({ status, message, slice: null, loadState: "idle", error: null, outlines: null, next: null });
       return;
     }
-    geoStore.setState({ status, message, slice, loadState: "loading", error: null, outlines: null });
+    geoStore.setState({ status, message, slice, loadState: "loading", error: null, outlines: null, next: null });
     provider.load(slice).then(
       (data) => {
         if (!active || currentSliceId !== slice.id) return; // 已停止或已切换到其他切片
-        geoStore.setState({ loadState: "ready", outlines: data.outlines });
+        geoStore.setState({ loadState: "ready", outlines: data.outlines, next: data.next ?? null });
       },
       (err: unknown) => {
         if (!active || currentSliceId !== slice.id) return;

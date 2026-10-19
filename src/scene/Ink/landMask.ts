@@ -1,5 +1,3 @@
-import { useEffect, useMemo } from "react";
-import { CanvasTexture, LinearFilter, type Texture } from "three";
 import type { LonLat } from "../../data/schema";
 
 /** 经度展开为连续值：相邻点差超过 180° 时加减 360°（跨日界线的环不再横穿地图）。 */
@@ -55,25 +53,4 @@ export function drawLandMask(ctx: CanvasRenderingContext2D, outlines: LonLat[][]
       ctx.fill();
     }
   }
-}
-
-/** 轮廓 → 陆地遮罩纹理。轮廓变化时重建并释放旧纹理；没有轮廓时返回 null（着色器退化为全海洋）。 */
-export function useLandMaskTexture(outlines: LonLat[][] | null, width = 4096): Texture | null {
-  const texture = useMemo(() => {
-    if (!outlines || typeof document === "undefined") return null;
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = width / 2;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-    drawLandMask(ctx, outlines, canvas.width, canvas.height);
-    const t = new CanvasTexture(canvas);
-    // 经度 ±180° 处 UV 跳变：不用 mipmap，避免接缝处出现一条采样错误的线
-    t.generateMipmaps = false;
-    t.minFilter = LinearFilter;
-    t.magFilter = LinearFilter;
-    return t;
-  }, [outlines, width]);
-  useEffect(() => () => texture?.dispose(), [texture]);
-  return texture;
 }

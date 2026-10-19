@@ -52,6 +52,11 @@ describe("PlaybackBar", () => {
     fireEvent.change(select, { target: { value: "all-60" } });
     expect(timeEngine.getSnapshot().rate).toBeCloseTo(EARTH_FORMATION_YEARS_AGO / 60, 3);
     expect(select).toHaveValue("all-60");
+    fireEvent.change(select, { target: { value: "smart-180" } });
+    expect(timeEngine.getSnapshot()).toMatchObject({ mode: "smart", smartSeconds: 180, currentTimeYearsAgo: 1000 });
+    expect(select).toHaveValue("smart-180");
+    fireEvent.change(select, { target: { value: "smart-600" } });
+    expect(select).toHaveValue("smart-600");
     fireEvent.change(select, { target: { value: "4" } });
     expect(timeEngine.getSnapshot()).toMatchObject({ mode: "fine", rate: 4 });
   });

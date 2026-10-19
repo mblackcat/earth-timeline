@@ -6,13 +6,30 @@ import { timeEngine } from "../../timeline/runtime";
 import { modeForRate } from "../../timeline/speeds";
 import { MAX_TARGET_SECONDS, MIN_TARGET_SECONDS, STEP_SIZES, isValidRate } from "../../timeline/TimeEngine";
 
+const MODE_LABEL = { fine: "精细模式", deep: "深时模式", smart: "智能模式" } as const;
+
+/** 两位有效数字：智能模式的瞬时倍率每帧都在变，只在显示值变化时重渲染。 */
+const roundRate = (r: number) => {
+  const p = 10 ** (Math.floor(Math.log10(r)) - 1);
+  return Math.round(r / p) * p;
+};
+
+function CurrentRate() {
+  const mode = useTimeStore((st) => st.mode);
+  const rate = useTimeStore((st) => (st.mode === "smart" ? roundRate(st.rate) : st.rate));
+  return (
+    <span data-testid="current-rate" data-mode={mode}>
+      {mode === "smart" ? "≈ " : ""}
+      {formatYearsSpan(rate)}/秒 · {MODE_LABEL[mode]}
+    </span>
+  );
+}
+
 /** 设置面板"播放"分组：方向、单步、自定义倍率、全史时长、快速跳转。 */
 export function PlaybackSettings() {
   const s = useTimeStore(
     useShallow((st) => ({
       direction: st.direction,
-      mode: st.mode,
-      rate: st.rate,
       stepSize: st.stepSize,
       maxYearsAgo: st.maxYearsAgo,
       minYearsAgo: st.minYearsAgo,
@@ -69,9 +86,7 @@ export function PlaybackSettings() {
 
       <div className="field">
         <span className="field-label">当前倍率</span>
-        <span data-testid="current-rate" data-mode={s.mode}>
-          {formatYearsSpan(s.rate)}/秒 · {s.mode === "fine" ? "精细模式" : "深时模式"}
-        </span>
+        <CurrentRate />
       </div>
 
       <div className="field">

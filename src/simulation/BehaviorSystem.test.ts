@@ -59,9 +59,9 @@ describe("globe creature sites", () => {
     const picked = pickCreatureSites(entries, [0, 0], 0.5, 3);
     // a@(0,0) 最近；b 保证至少一个；(0.5,0.5) 太近被跳过，取 a@(4,0)
     expect(picked).toEqual([
-      { speciesId: "a", lonLat: [0, 0] },
-      { speciesId: "b", lonLat: [10, 0] },
-      { speciesId: "a", lonLat: [4, 0] },
+      { speciesId: "a", lonLat: [0, 0], siteIndex: 0 },
+      { speciesId: "b", lonLat: [10, 0], siteIndex: 0 },
+      { speciesId: "a", lonLat: [4, 0], siteIndex: 2 },
     ]);
     expect(picked.some((p) => p.speciesId === "c")).toBe(false); // 地球另一侧
   });

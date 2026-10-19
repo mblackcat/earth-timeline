@@ -1,5 +1,7 @@
 import { EARTH_FORMATION_YEARS_AGO, TimeEngine, rateForTargetDuration, isValidRate } from "./TimeEngine";
 import { PlaybackController, type PlaybackEnv } from "./PlaybackController";
+import { buildPacing } from "./pacing";
+import { TimeScale } from "./TimeScale";
 
 /** 以固定帧间隔驱动引擎；返回结束时的虚拟毫秒。 */
 function run(engine: TimeEngine, startMs: number, seconds: number, fps = 60): number {
@@ -377,5 +379,81 @@ describe("PlaybackController", () => {
     f.advance(16);
     expect(engine.currentTimeYearsAgo).toBeCloseTo(before - 0.016, 6);
     ctrl.stop();
+  });
+});
+
+describe("TimeEngine smart mode", () => {
+  const pacing = buildPacing(new TimeScale("segmented", EARTH_FORMATION_YEARS_AGO, 0), [{ yearsAgo: 66_000_000, weight: 1 }]);
+  const smart = (start = EARTH_FORMATION_YEARS_AGO, dir: "forward" | "backward" = "forward") => {
+    fake = 0;
+    const e = mk({ startYearsAgo: start, mode: "deep" });
+    e.setPacing(pacing);
+    e.setSmartDuration(180);
+    expect(e.setMode("smart")).toBe(true);
+    e.setDirection(dir);
+    e.tick(0);
+    e.play(0);
+    return e;
+  };
+
+  it("refuses smart mode without pacing", () => {
+    const e = mk();
+    expect(e.setMode("smart")).toBe(false);
+    expect(e.getSnapshot().mode).toBe("fine");
+  });
+
+  it("plays the whole span in smartSeconds", () => {
+    const e = smart();
+    run(e, 0, 179);
+    expect(e.isPlaying).toBe(true);
+    run(e, 179_000, 1.5);
+    expect(e.isPlaying).toBe(false);
+    expect(e.currentTimeYearsAgo).toBe(0);
+    expect(e.getSnapshot().boundary).toBe("modern");
+  });
+
+  it("follows the warp: position = fromW(elapsed / T)", () => {
+    const e = smart();
+    run(e, 0, 90);
+    expect(pacing.toW(e.currentTimeYearsAgo)).toBeCloseTo(0.5, 3);
+  });
+
+  it("reports the instantaneous rate and smartSeconds in snapshots", () => {
+    const e = smart();
+    run(e, 0, 30);
+    const s = e.getSnapshot();
+    expect(s.mode).toBe("smart");
+    expect(s.smartSeconds).toBe(180);
+    expect(s.rate).toBeCloseTo(pacing.rateAt(s.currentTimeYearsAgo, 180), 6);
+  });
+
+  it("pause, direction change and duration change keep time continuous", () => {
+    const e = smart();
+    run(e, 0, 40);
+    const before = e.currentTimeYearsAgo;
+    e.pause();
+    expect(e.currentTimeYearsAgo).toBe(before);
+    e.setSmartDuration(600);
+    expect(e.currentTimeYearsAgo).toBe(before);
+    e.setDirection("backward");
+    e.play(fake);
+    run(e, fake, 10);
+    expect(e.currentTimeYearsAgo).toBeGreaterThan(before);
+    expect(pacing.toW(e.currentTimeYearsAgo)).toBeCloseTo(pacing.toW(before) - 10 / 600, 3);
+  });
+
+  it("seek keeps smart mode and continues from the new position", () => {
+    const e = smart();
+    e.seek(66_000_000);
+    run(e, 0, 1);
+    expect(pacing.toW(e.currentTimeYearsAgo)).toBeCloseTo(pacing.toW(66_000_000) + 1 / 180, 4);
+  });
+
+  it("rejects invalid smart durations and setRate in smart mode", () => {
+    const e = smart();
+    expect(e.setSmartDuration(0)).toBe(false);
+    expect(e.setSmartDuration(Number.NaN)).toBe(false);
+    expect(e.setRate(5)).toBe(false);
+    expect(e.getSnapshot().smartSeconds).toBe(180);
   });
 });

@@ -18,6 +18,7 @@ export const useTimeStore = create<TimeState>()(() => ({
   rate: 1,
   fineRate: 1,
   deepRate: 1_000_000,
+  smartSeconds: 180,
   stepSize: 1,
   boundary: "none",
   minYearsAgo: 0,

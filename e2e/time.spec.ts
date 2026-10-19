@@ -153,3 +153,20 @@ test("camera zoom and layer toggles do not touch simulated time, which keeps pla
   expect(probe.b).toBeLessThan(probe.a); // 仍在推进
   expect(probe.b).toBeGreaterThan(4_000_000_000); // 且没有被重置或跳变
 });
+
+test("smart pacing is the default: Precambrian passes quickly, recent history slows down", async ({ page }) => {
+  await expect(page.getByTestId("speed-select")).toHaveValue("smart-180");
+  await expect(page.getByTestId("current-rate")).toHaveAttribute("data-mode", "smart");
+  const r = await inPage(page, async () => {
+    const eng = () => (window as unknown as { __timeEngine: Eng & { rate: number; seek(t: number): void } }).__timeEngine;
+    eng().seek(4_000_000_000);
+    const early = eng().rate;
+    eng().seek(200);
+    const recent = eng().rate;
+    return { early, recent };
+  });
+  // 前寒武纪每秒上亿年，近现代每秒几十年
+  expect(r.early).toBeGreaterThan(1e8);
+  expect(r.recent).toBeLessThan(100);
+  await expect(page.getByTestId("current-rate")).toContainText("智能模式");
+});

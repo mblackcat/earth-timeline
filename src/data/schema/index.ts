@@ -160,6 +160,8 @@ export interface PaleoGeographySlice {
   note: string;
   /** 板块重建切片：重建所对应的年代（Ma）。化石点与事件位置按同一年代旋转。 */
   reconstructionMa?: number;
+  /** 板块重建切片：形变的目标年代（下一个更年轻的重建年代，Ma；0 = 现今）。 */
+  nextReconstructionMa?: number;
 }
 
 /** 化石点 / 事件位置旋转到各重建年代后的坐标（scripts/fetch-paleogeography.mjs 生成）。 */
@@ -181,6 +183,10 @@ export interface PaleoGeographyOutlines {
   note?: string;
   /** 轮廓线（经纬度折线，闭合环首尾相同）。 */
   outlines: LonLat[][];
+  /** 板块重建切片：形变目标年代（Ma）。 */
+  nextMa?: number;
+  /** 与 outlines 逐环逐点对应：各顶点在 nextMa 时的位置。 */
+  next?: LonLat[][];
 }
 
 export const YEARS_PER_MA = 1_000_000;

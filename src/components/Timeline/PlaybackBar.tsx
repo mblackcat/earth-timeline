@@ -26,7 +26,9 @@ export function PlaybackBar() {
       isPlaying: st.isPlaying,
       direction: st.direction,
       mode: st.mode,
-      rate: st.rate,
+      // 智能模式下瞬时倍率每帧都在变；预设匹配只看全程秒数，避免整条控制栏每帧重渲染
+      rate: st.mode === "smart" ? 0 : st.rate,
+      smartSeconds: st.smartSeconds,
       maxYearsAgo: st.maxYearsAgo,
       minYearsAgo: st.minYearsAgo,
       boundary: st.boundary,

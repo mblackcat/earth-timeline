@@ -1,11 +1,16 @@
 import { bindTimeStore } from "../state/timeStore";
 import { PlaybackController } from "./PlaybackController";
 import { DEFAULT_SPEED_ID, SPEED_PRESETS, applySpeedPreset } from "./speeds";
-import { TimeEngine } from "./TimeEngine";
+import { collectPacingAnchors } from "../simulation/pacingAnchors";
+import { buildPacing } from "./pacing";
+import { EARTH_FORMATION_YEARS_AGO, TimeEngine } from "./TimeEngine";
+import { TimeScale } from "./TimeScale";
 
 /** 应用级单例：唯一的时间引擎与它的 rAF 驱动。 */
 export const timeEngine = new TimeEngine();
-// 默认"全史 60 秒"：首次点播放即可看到完整的地球历史扫过时间轴。
+// 智能倍速：按事件 / 物种 / 纪 / 切片的密度放慢（基础节奏与时间轴的分段压缩刻度一致）
+timeEngine.setPacing(buildPacing(new TimeScale("segmented", EARTH_FORMATION_YEARS_AGO, 0), collectPacingAnchors()));
+// 默认"智能 · 约 3 分钟"：前期空白加速、内容密集处放慢
 applySpeedPreset(timeEngine, SPEED_PRESETS.find((p) => p.id === DEFAULT_SPEED_ID)!);
 export const playbackController = new PlaybackController(timeEngine);
 

@@ -1,6 +1,7 @@
 // 用法：node scripts/fetch-paleogeography.mjs [--points-only | --coastlines-only]
 // 从 GPlates Web Service 获取 CAO2024 板块重建结果，生成：
 //   public/data/geography/cao2024/<Ma>.json  重建海岸线（ett-outlines/1，Douglas–Peucker 简化）
+//                                             + next：各顶点在下一个更年轻重建年代的位置（板块漂移插值）
 //   public/data/geography/cao2024/points.json 化石点与事件位置在各重建年代的古坐标（ett-paleo-points/1）
 // 切片、事件、物种定义直接读取 src/ 下的 TypeScript 数据；化石点读取 public/data/species/pbdb-sites.json。
 // 模型数据许可：CC BY 4.0（Cao et al. 2024，Zenodo 10.5281/zenodo.11536686）。
@@ -14,6 +15,8 @@ const GRID_DEG = 0.25;
 const SIMPLIFY_DEG = 0.3;
 const MIN_RING_EXTENT_DEG = 2;
 const POINT_CHUNK = 150;
+// 轮廓顶点反算 / 正算的批量大小（POST）
+const VERTEX_CHUNK = 1000;
 const outDir = new URL("../public/data/geography/cao2024/", import.meta.url);
 const pointsOnly = process.argv.includes("--points-only");
 const coastlinesOnly = process.argv.includes("--coastlines-only");
@@ -21,6 +24,7 @@ const coastlinesOnly = process.argv.includes("--coastlines-only");
 const cacheDir = new URL("../node_modules/.cache/gws/", import.meta.url);
 
 const { RECONSTRUCTION_SLICES, RECONSTRUCTION_MODEL, RECONSTRUCTION_MAX_MA } = await loadTs("/src/data/geology/reconstruction.ts");
+const { fillMissingTargets, rejectInconsistentTargets, rejectStretchedRuns } = await loadTs("/src/simulation/paleoMorph.ts");
 const { EVENTS } = await loadTs("/src/data/events/index.ts");
 const { SPECIES } = await loadTs("/src/data/species/index.ts");
 const { eventAnchorLonLat, eventWindowYears } = await loadTs("/src/simulation/VisibilityResolver.ts");
@@ -81,7 +85,104 @@ function douglasPeucker(pts, tol) {
 const rCoast = (v) => Math.round(v * 20) / 20;
 const r2 = (v) => Math.round(v * 100) / 100;
 
-async function buildCoastlines(ma) {
+// ───────────── 板块漂移插值：顶点 tᵢ → 现今 → tᵢ₋₁ ─────────────
+
+async function reconstructBatch(points, ma, reverse) {
+  const out = [];
+  for (let i = 0; i < points.length; i += VERTEX_CHUNK) {
+    const chunk = points.slice(i, i + VERTEX_CHUNK);
+    const params = {
+      points: chunk.map(([lon, lat]) => `${lon},${lat}`).join(","),
+      time: String(ma),
+      model: RECONSTRUCTION_MODEL,
+      return_null_points: "",
+    };
+    if (reverse) params.reverse = "";
+    const res = await request(`${GWS}/reconstruct/reconstruct_points/`, { method: "POST", body: new URLSearchParams(params) });
+    const coords = res.coordinates ?? [];
+    if (coords.length !== chunk.length) throw new Error(`点数不一致：${coords.length} ≠ ${chunk.length}`);
+    for (const c of coords) out.push(Array.isArray(c) && Math.abs(c[0]) <= 180 && Math.abs(c[1]) <= 90 ? c : null);
+  }
+  return out;
+}
+
+// 目标点必须落在下一切片轮廓附近（容差内）；否则视为板块错配
+const TARGET_TOLERANCE_DEG = 3;
+const DEG = Math.PI / 180;
+const unit = ([lon, lat]) => [Math.cos(lat * DEG) * Math.cos(lon * DEG), Math.cos(lat * DEG) * Math.sin(lon * DEG), Math.sin(lat * DEG)];
+const cellKey = (lat, lon) => `${Math.floor(lat)},${((Math.floor(lon) % 360) + 360) % 360}`;
+
+/** 轮廓（按 0.2° 加密）的 1° 网格索引，用于"离轮廓最近距离"查询。 */
+function outlineIndex(rings) {
+  const grid = new Map();
+  for (const r of rings) {
+    for (let i = 0; i < r.length; i++) {
+      const p = r[i];
+      const q = r[i + 1];
+      const n = q && Math.abs(q[0] - p[0]) <= 180 ? Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 0.2)) : 1;
+      for (let k = 0; k < n; k++) {
+        const pt = q ? [p[0] + ((q[0] - p[0]) * k) / n, p[1] + ((q[1] - p[1]) * k) / n] : p;
+        const key = cellKey(pt[1], pt[0]);
+        (grid.get(key) ?? grid.set(key, []).get(key)).push(unit(pt));
+      }
+    }
+  }
+  return grid;
+}
+
+function nearOutline(grid, p, tol) {
+  const a = unit(p);
+  const cosTol = Math.cos(tol * DEG);
+  const span = Math.ceil(tol);
+  const lonSpan = Math.min(180, Math.ceil(span / Math.max(0.05, Math.cos(Math.min(89, Math.abs(p[1]) + span) * DEG))));
+  for (let dy = -span; dy <= span; dy++) {
+    for (let dx = -lonSpan; dx <= lonSpan; dx++) {
+      for (const b of grid.get(cellKey(p[1] + dy, p[0] + dx)) ?? []) if (a[0] * b[0] + a[1] * b[1] + a[2] * b[2] >= cosTol) return true;
+    }
+  }
+  return false;
+}
+
+/** 已生成的各年代轮廓（年轻的先生成），用于校验形变目标。 */
+const builtOutlines = new Map();
+
+/**
+ * 各顶点在 nextMa 的位置。以下目标按无效处理并借用环上最近有效顶点的位移：
+ * 无法重建；离下一切片轮廓超过容差；位移与环上邻居不一致；整段一起错配（形变后撕裂的边切出的非最长段）。
+ */
+async function morphTargets(outlines, ma, nextMa) {
+  const flat = outlines.flat();
+  const cacheFile = new URL(`${RECONSTRUCTION_MODEL}-morph-${ma}-${nextMa}-${flat.length}.json`, cacheDir);
+  let targets;
+  try {
+    targets = JSON.parse(await readFile(cacheFile, "utf8"));
+  } catch {
+    const present = await reconstructBatch(flat, ma, true);
+    targets = present.slice();
+    if (nextMa > 0) {
+      const idx = present.map((p, i) => (p ? i : -1)).filter((i) => i >= 0);
+      const fwd = await reconstructBatch(idx.map((i) => present[i]), nextMa, false);
+      targets = present.map(() => null);
+      idx.forEach((i, k) => (targets[i] = fwd[k]));
+    }
+    await writeFile(cacheFile, JSON.stringify(targets));
+  }
+  const nextIndex = builtOutlines.has(nextMa) ? outlineIndex(builtOutlines.get(nextMa)) : null;
+  let k = 0;
+  let missing = 0;
+  const next = outlines.map((ring) => {
+    const raw = ring.map(() => targets[k++]);
+    const checked = nextIndex ? raw.map((p) => (p && nearOutline(nextIndex, p, TARGET_TOLERANCE_DEG) ? p : null)) : raw;
+    const t = rejectInconsistentTargets(ring, checked);
+    // 整段一起错配：形变后撕裂的边把环切开，只保留最长的一段
+    const kept = rejectStretchedRuns(ring, fillMissingTargets(ring, t)).map((p, i) => (p && t[i] ? p : null));
+    missing += kept.filter((p) => !p).length;
+    return fillMissingTargets(ring, kept).map(([lon, lat]) => [rCoast(lon), rCoast(lat)]);
+  });
+  return { next, missing };
+}
+
+async function buildCoastlines(ma, nextMa) {
   if (ma > RECONSTRUCTION_MAX_MA) throw new Error(`${ma} Ma 超出模型范围`);
   const cacheFile = new URL(`${RECONSTRUCTION_MODEL}-coastlines-${ma}.json`, cacheDir);
   let fc;
@@ -110,15 +211,19 @@ async function buildCoastlines(ma) {
     const simple = douglasPeucker(line, SIMPLIFY_DEG).map(([lon, lat]) => [rCoast(lon), rCoast(lat)]);
     if (simple.length >= 3) outlines.push(simple);
   }
+  const { next, missing } = await morphTargets(outlines, ma, nextMa);
+  builtOutlines.set(ma, outlines);
   const file = {
     format: "ett-outlines/1",
     sourceId: "cao-2024",
-    note: `GPlates Web Service · ${RECONSTRUCTION_MODEL} · ${ma} Ma 重建海岸线（现今陆块边界旋转后的位置），${GRID_DEG}° 栅格融合去除内部切割线，Douglas–Peucker ${SIMPLIFY_DEG}°，坐标保留 0.05°。`,
+    note: `GPlates Web Service · ${RECONSTRUCTION_MODEL} · ${ma} Ma 重建海岸线（现今陆块边界旋转后的位置），${GRID_DEG}° 栅格融合去除内部切割线，Douglas–Peucker ${SIMPLIFY_DEG}°，坐标保留 0.05°。next 为各顶点经现今位置正算到 ${nextMa} Ma 的位置（板块漂移插值），无法重建、离下一切片轮廓超过 ${TARGET_TOLERANCE_DEG}°、位移与环上邻居不一致或整段撕裂的顶点（板块错配）借用环上最近有效顶点的位移。`,
     outlines,
+    nextMa,
+    next,
   };
   await writeFile(new URL(`${ma}.json`, outDir), JSON.stringify(file) + "\n");
   const kept = outlines.reduce((n, r) => n + r.length, 0);
-  console.log(`coastlines ${String(ma).padStart(5)} Ma  rings=${outlines.length}  points ${rawPoints} → ${kept}`);
+  console.log(`coastlines ${String(ma).padStart(5)} Ma → ${String(nextMa).padStart(4)}  rings=${outlines.length}  points ${rawPoints} → ${kept}  morph-missing=${missing}`);
 }
 
 // ───────────── 点旋转 ─────────────
@@ -150,22 +255,32 @@ await mkdir(outDir, { recursive: true });
 await mkdir(cacheDir, { recursive: true });
 
 if (!pointsOnly) {
-  for (const slice of RECONSTRUCTION_SLICES) await buildCoastlines(slice.reconstructionMa);
+  for (const slice of RECONSTRUCTION_SLICES) await buildCoastlines(slice.reconstructionMa, slice.nextReconstructionMa);
 }
 
 if (coastlinesOnly) process.exit(0);
 
 const points = { format: "ett-paleo-points/1", model: RECONSTRUCTION_MODEL, sourceIds: ["cao-2024", "gplates-web-service"], generated: new Date().toISOString().slice(0, 10), species: {}, events: {} };
 
+/** 与时间范围重叠的切片需要两端（tᵢ 与 tᵢ₋₁）的古坐标；tᵢ₋₁ = 0 时用现代坐标，不存。 */
+function agesFor(older, younger) {
+  const ages = new Set();
+  for (const slice of RECONSTRUCTION_SLICES) {
+    if (!overlaps(slice, older, younger)) continue;
+    ages.add(slice.reconstructionMa);
+    if (slice.nextReconstructionMa > 0) ages.add(slice.nextReconstructionMa);
+  }
+  return [...ages].sort((a, b) => a - b);
+}
+
 for (const sp of SPECIES) {
   const sites = sitesFile.species[sp.id]?.sites ?? [];
   if (!sites.length) continue;
   points.species[sp.id] = {};
-  for (const slice of RECONSTRUCTION_SLICES) {
-    if (!overlaps(slice, sp.time.fromYearsAgo, sp.time.toYearsAgo)) continue;
-    const rec = await reconstructPoints(sites, slice.reconstructionMa);
-    points.species[sp.id][slice.reconstructionMa] = rec;
-    console.log(`species ${sp.id.padEnd(28)} ${String(slice.reconstructionMa).padStart(5)} Ma  ${rec.filter(Boolean).length}/${rec.length}`);
+  for (const ma of agesFor(sp.time.fromYearsAgo, sp.time.toYearsAgo)) {
+    const rec = await reconstructPoints(sites, ma);
+    points.species[sp.id][ma] = rec;
+    console.log(`species ${sp.id.padEnd(28)} ${String(ma).padStart(5)} Ma  ${rec.filter(Boolean).length}/${rec.length}`);
   }
 }
 
@@ -175,11 +290,10 @@ for (const ev of EVENTS) {
   const w = eventWindowYears(ev, 0);
   const older = ev.time.fromYearsAgo + (ev.time.uncertaintyYears?.older ?? 0) + w;
   const younger = ev.time.toYearsAgo - (ev.time.uncertaintyYears?.younger ?? 0) - w;
-  for (const slice of RECONSTRUCTION_SLICES) {
-    if (!overlaps(slice, older, younger)) continue;
-    const [p] = await reconstructPoints([anchor], slice.reconstructionMa);
-    (points.events[ev.id] ??= {})[slice.reconstructionMa] = p;
-    console.log(`event   ${ev.id.padEnd(28)} ${String(slice.reconstructionMa).padStart(5)} Ma  ${JSON.stringify(p)}`);
+  for (const ma of agesFor(older, younger)) {
+    const [p] = await reconstructPoints([anchor], ma);
+    (points.events[ev.id] ??= {})[ma] = p;
+    console.log(`event   ${ev.id.padEnd(28)} ${String(ma).padStart(5)} Ma  ${JSON.stringify(p)}`);
   }
 }
 

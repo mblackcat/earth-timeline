@@ -8,9 +8,12 @@
  * - 改变速率 / 方向 / 跳转 / 单步都会重新锚定。
  */
 
+import type { Pacing } from "./pacing";
+
 export const EARTH_FORMATION_YEARS_AGO = 4_540_000_000;
 
-export type PlaybackMode = "fine" | "deep";
+/** smart = 智能倍速：按内容密度变速（见 pacing.ts）。 */
+export type PlaybackMode = "fine" | "deep" | "smart";
 /** forward = 历史向现代前进（yearsAgo 减小）；backward = 回溯过去。 */
 export type PlaybackDirection = "forward" | "backward";
 export type TimeBoundary = "none" | "modern" | "origin";
@@ -28,17 +31,20 @@ export const MAX_RATE = 1e10;
 export const MIN_TARGET_SECONDS = 1;
 export const MAX_TARGET_SECONDS = 86_400;
 
-export const DEFAULT_RATES: Record<PlaybackMode, number> = { fine: 1, deep: 1_000_000 };
+export const DEFAULT_RATES: Record<"fine" | "deep", number> = { fine: 1, deep: 1_000_000 };
+export const DEFAULT_SMART_SECONDS = 180;
 
 export interface TimeSnapshot {
   currentTimeYearsAgo: number;
   isPlaying: boolean;
   direction: PlaybackDirection;
   mode: PlaybackMode;
-  /** 当前模式下生效的倍率（年/秒）。 */
+  /** 当前模式下生效的倍率（年/秒）；智能模式下为当前位置的瞬时倍率。 */
   rate: number;
   fineRate: number;
   deepRate: number;
+  /** 智能模式全程目标秒数。 */
+  smartSeconds: number;
   stepSize: number;
   /** 最近一次因到达边界而停止所在的边界；离开边界后恢复为 "none"。 */
   boundary: TimeBoundary;
@@ -88,6 +94,8 @@ export class TimeEngine {
   private mode: PlaybackMode;
   private fineRate: number = DEFAULT_RATES.fine;
   private deepRate: number = DEFAULT_RATES.deep;
+  private smartSeconds = DEFAULT_SMART_SECONDS;
+  private pacing: Pacing | null = null;
   private stepSize: number = STEP_SIZES[0];
   private boundary: TimeBoundary = "none";
 
@@ -100,7 +108,8 @@ export class TimeEngine {
     this.maxYearsAgo = options.maxYearsAgo ?? EARTH_FORMATION_YEARS_AGO;
     if (!(this.minYearsAgo < this.maxYearsAgo)) throw new RangeError("minYearsAgo must be < maxYearsAgo");
     this.clock = options.clock ?? (() => performance.now());
-    this.mode = options.mode ?? "fine";
+    // 构造时还没有 pacing，智能模式需在 setPacing 之后切换
+    this.mode = options.mode === "smart" ? "fine" : (options.mode ?? "fine");
     this.anchorYearsAgo = this.clamp(options.startYearsAgo ?? this.minYearsAgo);
     this.resetYearsAgo = this.anchorYearsAgo;
   }
@@ -109,11 +118,11 @@ export class TimeEngine {
 
   get currentTimeYearsAgo(): number {
     if (!this.playing || this.elapsedSec === 0) return this.anchorYearsAgo;
-    const delta = this.rate * this.elapsedSec * (this.direction === "forward" ? -1 : 1);
-    return this.clamp(this.anchorYearsAgo + delta);
+    return this.clamp(this.unclampedPosition());
   }
 
   get rate(): number {
+    if (this.mode === "smart" && this.pacing) return this.pacing.rateAt(this.currentTimeYearsAgo, this.smartSeconds);
     return this.mode === "fine" ? this.fineRate : this.deepRate;
   }
 
@@ -132,6 +141,7 @@ export class TimeEngine {
       c.mode === this.mode &&
       c.fineRate === this.fineRate &&
       c.deepRate === this.deepRate &&
+      c.smartSeconds === this.smartSeconds &&
       c.stepSize === this.stepSize &&
       c.boundary === this.boundary &&
       c.resetYearsAgo === this.resetYearsAgo
@@ -146,6 +156,7 @@ export class TimeEngine {
       rate: this.rate,
       fineRate: this.fineRate,
       deepRate: this.deepRate,
+      smartSeconds: this.smartSeconds,
       stepSize: this.stepSize,
       boundary: this.boundary,
       minYearsAgo: this.minYearsAgo,
@@ -307,18 +318,20 @@ export class TimeEngine {
     return true;
   }
 
-  /** 切换模式：不改变当前时间、播放状态与方向（各模式记住自己的倍率）。 */
-  setMode(mode: PlaybackMode): void {
-    if (mode === this.mode) return;
+  /** 切换模式：不改变当前时间、播放状态与方向（各模式记住自己的倍率）。智能模式需先注入 pacing。 */
+  setMode(mode: PlaybackMode): boolean {
+    if (mode === this.mode) return true;
+    if (mode === "smart" && !this.pacing) return false;
     this.sync();
     this.reanchor();
     this.mode = mode;
     this.emit();
+    return true;
   }
 
   /** 设置当前模式或指定模式的倍率（年/秒）。非法值返回 false，状态不变。 */
   setRate(rate: number, mode: PlaybackMode = this.mode): boolean {
-    if (!isValidRate(rate)) return false;
+    if (mode === "smart" || !isValidRate(rate)) return false;
     if (mode === this.mode) {
       this.sync();
       this.reanchor();
@@ -335,6 +348,26 @@ export class TimeEngine {
     if (rate === null) return null;
     this.setRate(rate, "deep");
     return rate;
+  }
+
+  /** 注入智能倍速的时间扭曲（runtime 用数据构建）。 */
+  setPacing(pacing: Pacing): void {
+    this.sync();
+    this.reanchor();
+    this.pacing = pacing;
+    this.emit();
+  }
+
+  /** 智能模式：全程目标秒数。非法值返回 false。 */
+  setSmartDuration(seconds: number): boolean {
+    if (!Number.isFinite(seconds) || seconds < MIN_TARGET_SECONDS || seconds > MAX_TARGET_SECONDS) return false;
+    if (this.mode === "smart") {
+      this.sync();
+      this.reanchor();
+    }
+    this.smartSeconds = seconds;
+    this.emit();
+    return true;
   }
 
   /** 设定"重置"回到的起始时间（默认为构造时的起点）。 */
@@ -358,7 +391,13 @@ export class TimeEngine {
   }
 
   private unclampedPosition(): number {
-    return this.anchorYearsAgo + this.rate * this.elapsedSec * (this.direction === "forward" ? -1 : 1);
+    const sign = this.direction === "forward" ? -1 : 1;
+    if (this.mode === "smart" && this.pacing) {
+      // w 增大 = 走向现代；fromW 在两端夹取，正好落在边界上
+      const w = this.pacing.toW(this.anchorYearsAgo) - (sign * this.elapsedSec) / this.smartSeconds;
+      return this.pacing.fromW(w);
+    }
+    return this.anchorYearsAgo + this.rate * this.elapsedSec * sign;
   }
 
   /** 把已播放的位移固化进锚点（改变速率 / 方向 / 暂停前调用）。 */

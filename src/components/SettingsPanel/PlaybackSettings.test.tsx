@@ -3,6 +3,7 @@ import { PlaybackSettings } from "./PlaybackSettings";
 import { bindTimeStore } from "../../state/timeStore";
 import { timeEngine } from "../../timeline/runtime";
 import { EARTH_FORMATION_YEARS_AGO } from "../../timeline/TimeEngine";
+import { SPEED_PRESETS, applySpeedPreset } from "../../timeline/speeds";
 
 let unbind: () => void;
 beforeEach(() => {
@@ -57,5 +58,15 @@ describe("PlaybackSettings", () => {
       fireEvent.click(screen.getByTestId("apply-target"));
     });
     expect(screen.getByTestId("playback-error")).toHaveTextContent("时长");
+  });
+
+  it("shows the smart mode with an approximate instantaneous rate", () => {
+    render(<PlaybackSettings />);
+    act(() => {
+      applySpeedPreset(timeEngine, SPEED_PRESETS.find((p) => p.id === "smart-180")!);
+    });
+    const el = screen.getByTestId("current-rate");
+    expect(el).toHaveAttribute("data-mode", "smart");
+    expect(el.textContent).toMatch(/^≈ .+\/秒 · 智能模式$/);
   });
 });

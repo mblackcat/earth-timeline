@@ -26,6 +26,7 @@ function setup() {
     loadState: "idle",
     error: null,
     outlines: null,
+    next: null,
   }));
   return { fetchJson, provider, time, geo };
 }

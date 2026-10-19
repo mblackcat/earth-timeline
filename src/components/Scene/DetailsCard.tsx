@@ -6,7 +6,8 @@ import { HABITAT_LABELS, SPECIES_BY_ID } from "../../data/species";
 import { focusEventOnGlobe, focusSpeciesOnGlobe, jumpToEvent } from "../../state/actions";
 import { useGeographyStore } from "../../state/geographyStore";
 import { useFossilSitesStore, usePaleoPointsStore } from "../../state/sceneStore";
-import { frameFor, speciesSitesInFrame } from "../../simulation/paleoPositions";
+import { speciesSitesInFrame } from "../../simulation/paleoPositions";
+import { currentPaleoFrame } from "../../state/paleoFrame";
 import { useSelectionStore } from "../../state/selectionStore";
 import { SPECIES_COLORS_MUTED } from "../../scene/Living/speciesColors";
 import { eventAnchorLonLat } from "../../simulation/VisibilityResolver";
@@ -94,9 +95,10 @@ function SpeciesDetail({ id }: { id: string }) {
   const openSpecimen = useSelectionStore((s) => s.openSpecimen);
   const sites = useFossilSitesStore((s) => s.data?.species[id]);
   const paleo = usePaleoPointsStore((s) => s.data);
-  const reconstructionMa = useGeographyStore((s) => s.slice?.reconstructionMa);
+  // 切片变化时重新计数（同一切片内形变不改变可重建的点数）
+  useGeographyStore((s) => s.slice);
   if (!sp) return <p className="detail-missing">未找到物种数据：{id}</p>;
-  const frame = frameFor(reconstructionMa);
+  const frame = currentPaleoFrame();
   const shown = sites ? speciesSitesInFrame(id, sites.sites, frame, paleo).length : 0;
   return (
     <>
@@ -116,7 +118,7 @@ function SpeciesDetail({ id }: { id: string }) {
         {!sites
           ? "化石点数据尚未加载"
           : frame.kind === "paleo"
-            ? `${sites.sites.length} 个化石点（${sites.occurrences} 条 PBDB 记录），已按板块重建旋转到 ${frame.ma} Ma 的位置，其中 ${shown} 个可重建`
+            ? `${sites.sites.length} 个化石点（${sites.occurrences} 条 PBDB 记录），已按板块重建旋转到 ${frame.ma} → ${frame.nextMa} Ma 之间的位置，其中 ${shown} 个可重建`
             : `${sites.sites.length} 个化石点（${sites.occurrences} 条 PBDB 记录，现代坐标）`}
       </div>
       <div className="detail-row">

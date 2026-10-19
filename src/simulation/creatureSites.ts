@@ -9,19 +9,21 @@ function angularDistanceDeg(a: LonLat, b: LonLat): number {
   return Math.acos(Math.min(1, Math.max(-1, c))) / D;
 }
 
-/** 选出要显示模型的化石点：按与视野中心的角距离排序，取前 max 个（纯函数，便于测试）。 */
+/** 选出要显示模型的化石点：按与视野中心的角距离排序，取前 max 个（纯函数，便于测试）。siteIndex 为点在该物种 sites 中的下标。 */
 export function pickCreatureSites(
   entries: { speciesId: string; sites: LonLat[] }[],
   center: LonLat,
   altitude: number,
   max: number,
-): { speciesId: string; lonLat: LonLat }[] {
+): { speciesId: string; lonLat: LonLat; siteIndex: number }[] {
   if (altitude >= CREATURE_MAX_ALTITUDE) return [];
   const limit = Math.min(70, 25 + altitude * 40);
-  const all: { speciesId: string; lonLat: LonLat; d: number }[] = [];
-  for (const e of entries) for (const s of e.sites) {
-    const d = angularDistanceDeg(center, s);
-    if (d <= limit) all.push({ speciesId: e.speciesId, lonLat: s, d });
+  const all: { speciesId: string; lonLat: LonLat; siteIndex: number; d: number }[] = [];
+  for (const e of entries) {
+    e.sites.forEach((s, siteIndex) => {
+      const d = angularDistanceDeg(center, s);
+      if (d <= limit) all.push({ speciesId: e.speciesId, lonLat: s, siteIndex, d });
+    });
   }
   all.sort((a, b) => a.d - b.d);
   // 模型之间保持最小角距离（约 2 个模型的屏幕高度），避免化石点密集处叠成一团
@@ -37,5 +39,5 @@ export function pickCreatureSites(
     }
   }
   for (const c of all) if (out.length < max && !out.includes(c) && farEnough(c, out)) out.push(c);
-  return out.map(({ speciesId, lonLat }) => ({ speciesId, lonLat }));
+  return out.map(({ speciesId, lonLat, siteIndex }) => ({ speciesId, lonLat, siteIndex }));
 }
