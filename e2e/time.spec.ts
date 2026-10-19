@@ -16,7 +16,7 @@ test.beforeEach(async ({ page }) => {
     if (m.type() === "error") errors.push(`console: ${m.text()}`);
   });
   await page.goto("/");
-  await expect(page.getByTestId("playback-controls")).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("playback-bar")).toBeVisible({ timeout: 30_000 });
 });
 
 test.afterEach(() => {

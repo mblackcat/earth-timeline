@@ -31,13 +31,17 @@ test("dragging the timeline changes the time and the 3D scene follows (geography
   const t = await engineTime(page);
   expect(t).toBeGreaterThan(66_000_000); // 分段刻度下 30% 处位于古生代
   await expect(page.getByTestId("current-period")).toContainText("古生代");
-  // 场景的地理图层随时间更新：全新世之外没有轮廓数据，降级为"缺失"状态
-  await expect(page.getByTestId("geo-caption")).toHaveAttribute("data-status", "missing");
+  // 场景的地理图层随时间更新：古生代使用板块重建切片
+  const caption = page.getByTestId("geo-caption");
+  await expect(caption).toHaveAttribute("data-load", "ready");
+  await expect(caption).toContainText("板块重建");
 
   await page.mouse.move(box.x + box.width - 2, box.y + 8);
   await page.mouse.down();
   await page.mouse.up();
-  await expect(page.getByTestId("geo-caption")).toHaveAttribute("data-status", "exact");
+  // 回到全新世：现代海岸线（示意）
+  await expect(caption).toContainText("现代海岸线");
+  await expect(caption).toHaveAttribute("data-load", "ready");
 });
 
 test("clicking an event jumps to its time; zooming keeps the marker aligned with the indicator", async ({ page }) => {

@@ -46,7 +46,7 @@ E2E_BROWSER_CHANNEL=chromium npm run test:e2e
 | 顶部「返回全球视角」 | 保持当前经纬度，拉远到全球视角 |
 | 顶部「重置视角」 | 回到默认视角 |
 | 底部 | 时间轴（拖动定位、滚轮缩放、点击事件跳转、点击年代色块缩放）+ 播放 / 暂停 + 倍速 |
-| 右侧面板 | 播放参数、时间轴刻度、图层、模型风格与细节、动画与低性能模式；可折叠 |
+| 右侧面板 | 播放参数、时间轴刻度、图层、视觉风格（线稿 + 网点 / 线稿 / 白模）与模型细节、动画与低性能模式；可折叠 |
 | 场景左上角「此时期」 | 当前可见的代表性生物与事件，点击查看详情与来源 |
 | 详情中「近距离观察」 | 按真实比例观察生物模型与动画 |
 | 顶部「帮助」 | 全部操作说明与时间轴图例 |
@@ -58,13 +58,14 @@ src/
 ├── app/            App 布局、错误边界
 ├── components/     DOM UI：TopBar、Help、SettingsPanel、Timeline、Scene（此时期 / 详情）、Specimen（观察窗）
 ├── scene/          R3F 3D 场景
-│   ├── EarthScene/       Canvas、地球、大气、经纬网、地理数据说明浮层
+│   ├── EarthScene/       Canvas、地球（网点海洋 + 陆地遮罩）、球体轮廓、经纬网、地理数据说明浮层
 │   ├── CameraController/ 球面相机模型（纯 TS）与 R3F 绑定
 │   ├── Terrain/          古地理 / 现代轮廓与参考海岸线
 │   ├── Living/           化石点、事件标记、地球上的生物模型（LOD1）
 │   ├── Models/           程序化低多边形模型、关节动画、动画时钟
 │   ├── Specimen/         近距离观察窗的局部场景
-│   └── Wireframe/        线稿通用组件与统一色板
+│   ├── Ink/              墨线 + 网点：色板、网点材质、外轮廓材质、陆地遮罩
+│   └── Wireframe/        球面折线组件
 ├── timeline/       TimeEngine、PlaybackController、CalendarAdapter、TimeScale
 ├── data/           schema、events、species、visuals、sources、regions、geology（年代表 / 古地理切片）
 ├── simulation/     可见性、古坐标参考系、行为系统
