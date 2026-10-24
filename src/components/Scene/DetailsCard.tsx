@@ -6,6 +6,7 @@ import { HABITAT_LABELS, SPECIES_BY_ID } from "../../data/species";
 import { focusEventOnGlobe, focusSpeciesOnGlobe, jumpToEvent } from "../../state/actions";
 import { useGeographyStore } from "../../state/geographyStore";
 import { useFossilSitesStore, usePaleoPointsStore } from "../../state/sceneStore";
+import { abundanceTier } from "../../simulation/abundance";
 import { speciesSitesInFrame } from "../../simulation/paleoPositions";
 import { currentPaleoFrame } from "../../state/paleoFrame";
 import { useSelectionStore } from "../../state/selectionStore";
@@ -121,6 +122,11 @@ function SpeciesDetail({ id }: { id: string }) {
             ? `${sites.sites.length} 个化石点（${sites.occurrences} 条 PBDB 记录），已按板块重建旋转到 ${frame.ma} → ${frame.nextMa} Ma 之间的位置，其中 ${shown} 个可重建`
             : `${sites.sites.length} 个化石点（${sites.occurrences} 条 PBDB 记录，现代坐标）`}
       </div>
+      {sites && (
+        <div className="detail-row" data-testid="detail-abundance" title="记录数受保存条件与采样强度影响，只是丰度的粗略代理">
+          化石记录丰度：{sites.occurrences.toLocaleString("zh-CN")} 条（数量级 {abundanceTier(sites.occurrences)} / 4，仅为粗略代理）
+        </div>
+      )}
       <div className="detail-row">
         <span className={`evidence ${sp.evidenceLevel}`}>{EVIDENCE_LABELS[sp.evidenceLevel]}</span>
         <span className="detail-note">{sp.evidenceNote}</span>

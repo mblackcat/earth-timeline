@@ -8,6 +8,7 @@ import { useFossilSitesStore, usePaleoPointsStore, useSceneStore } from "../../s
 import { useSelectionStore } from "../../state/selectionStore";
 import { useSettingsStore } from "../../state/settingsStore";
 import { useViewStore } from "../../state/viewStore";
+import { globeModelPx } from "../../simulation/abundance";
 import { updateInterval } from "../../simulation/BehaviorSystem";
 import { pickCreatureSites } from "../../simulation/creatureSites";
 import { siteInFrame } from "../../simulation/paleoPositions";
@@ -20,10 +21,10 @@ import { useRig } from "../Models/useRig";
 /**
  * 地球上的 LOD1：相机拉近到大陆尺度（L1 及更近）时，离视野中心最近的少量化石点
  * 显示为固定屏幕尺寸的低多边形模型（Idle 动画）。更远时只有化石点（LOD2）。
- * 模型尺寸是图标化的，不代表真实比例；真实比例见近距离观察窗。
+ * 屏幕尺寸按外形最大尺寸与体长压缩映射（globeModelPx：6 cm ≈ 14 px … ≥ 25 m 48 px），
+ * 保留大小关系但不是真实比例；真实比例见近距离观察窗。
  */
 
-const SCREEN_HEIGHT_PX = 34;
 const SURFACE_R = 1.004;
 
 interface Candidate {
@@ -71,10 +72,11 @@ function Creature({ c, index, paleo }: { c: Candidate; index: number; paleo: Pal
     g.visible = pos.clone().normalize().dot(cam.position.clone().sub(pos).normalize()) > 0.05;
     if (!g.visible) return;
     const worldPerPx = (2 * dist * Math.tan((cam.fov * Math.PI) / 360)) / Math.max(1, size.height);
-    g.scale.setScalar((worldPerPx * SCREEN_HEIGHT_PX) / rig.height);
+    const px = globeModelPx(c.asset.sizeM);
+    g.scale.setScalar((worldPerPx * px) / rig.extent);
     frame.current++;
     const s = useSettingsStore.getState();
-    if (frame.current % updateInterval(dist / (worldPerPx * SCREEN_HEIGHT_PX), false, s.lowPerformance) !== 0) return;
+    if (frame.current % updateInterval(dist / (worldPerPx * px), false, s.lowPerformance) !== 0) return;
     applyClip(rig, c.asset.archetype, "idle", animT.current, index * 1.7);
   });
 

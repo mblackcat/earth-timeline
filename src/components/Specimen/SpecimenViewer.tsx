@@ -45,7 +45,7 @@ export function SpecimenViewer() {
         <div>
           <b>{species.commonName}</b> <i className="detail-sci">{species.scientificName}</i>
           <span className="specimen-meta">
-            {asset.archetype === "pterosaur" ? "翼展" : asset.type === "human" ? "身高" : asset.type === "plant" ? "株高" : "体长"}约 {formatSize(asset.sizeM)} ·
+            {asset.locomotion === "fly" ? "翼展" : asset.type === "human" ? "身高" : asset.type === "plant" ? "株高" : "体长"}约 {formatSize(asset.sizeM)} ·
             真实比例 · LOD {lod}
           </span>
         </div>

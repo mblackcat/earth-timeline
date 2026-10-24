@@ -114,7 +114,23 @@ export interface FossilSitesFile {
 }
 
 /** 程序化低多边形模型的体型原型（scene/Models 中各有一个构建器）。 */
-export type ModelArchetype = "trilobite" | "fish" | "plant" | "quadruped" | "theropod" | "pterosaur" | "hominin";
+export type ModelArchetype =
+  | "trilobite"
+  | "fish"
+  | "plant"
+  | "quadruped"
+  | "theropod"
+  | "pterosaur"
+  | "hominin"
+  | "arthropod"
+  | "sessile"
+  | "cephalopod"
+  | "tree"
+  | "herb"
+  | "sauropod"
+  | "marineReptile"
+  | "bird"
+  | "insect";
 
 export type AnimationClipName = "idle" | "move" | "eat";
 

@@ -1,4 +1,5 @@
 import { calBpToYearsAgo, maToYearsAgo, type HabitatId, type Species, type TimeRange } from "../schema";
+import { PBDB_NAMES_BATCH1, SPECIES_BATCH1 } from "./batch1";
 
 /**
  * PLAN §5.3 的代表性生物。
@@ -10,7 +11,7 @@ import { calBpToYearsAgo, maToYearsAgo, type HabitatId, type Species, type TimeR
  *          （剔除少量误归类记录造成的离群值），仅作展示用近似。
  * 分布一律为 PBDB 化石点（现代坐标，非当时古地理位置，风险 R5），
  * 由 scripts/fetch-pbdb-sites.mjs 按上述年代范围过滤后生成。
- * "若干现代动植物"尚未收录（缺少逐条核实的来源）。
+ * 扩充的物种分批放在 batch*.ts 中，按相同规则取得年代。
  */
 
 const ma = (fromMa: number, toMa: number, unc?: [number, number]): TimeRange => ({
@@ -46,6 +47,7 @@ export const PBDB_NAMES: Record<string, string> = {
   "australopithecus-afarensis": "Australopithecus afarensis",
   "homo-erectus": "Homo erectus",
   "homo-sapiens": "Homo sapiens",
+  ...PBDB_NAMES_BATCH1,
 };
 
 export const SPECIES: Species[] = [
@@ -245,6 +247,7 @@ export const SPECIES: Species[] = [
     evidenceNote: "[文献] 起点为杰贝尔依罗化石的 315 ± 34 ka（Hublin et al. 2017；Richter et al. 2017），延续至今。化石点只代表考古与化石记录，不代表现代分布。",
     sourceIds: ["hublin-2017", "richter-2017", "pbdb"],
   },
+  ...SPECIES_BATCH1,
 ];
 
 export const SPECIES_BY_ID: Record<string, Species> = Object.fromEntries(SPECIES.map((s) => [s.id, s]));

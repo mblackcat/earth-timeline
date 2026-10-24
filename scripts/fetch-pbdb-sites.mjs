@@ -20,12 +20,19 @@ const TAXA = Object.fromEntries(
 
 const round = (v) => Math.round(v * 2) / 2;
 
-async function fetchTaxon(name) {
+async function fetchTaxon(name, attempt = 1) {
   const url = "https://paleobiodb.org/data1.2/occs/list.json?" + new URLSearchParams({ base_name: name, show: "coords", limit: "all" });
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`PBDB ${res.status} for ${name}`);
-  const body = await res.json();
-  return body.records ?? [];
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`PBDB ${res.status} for ${name}`);
+    const body = await res.json();
+    return body.records ?? [];
+  } catch (err) {
+    // 大类群（菊石、海百合）的响应很大，偶尔连接被断开：重试
+    if (attempt >= 4) throw err;
+    await new Promise((r) => setTimeout(r, 3000 * attempt));
+    return fetchTaxon(name, attempt + 1);
+  }
 }
 
 const species = {};

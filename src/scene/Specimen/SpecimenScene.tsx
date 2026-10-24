@@ -33,7 +33,7 @@ const LOD1_DISTANCE_RATIO = 14;
 export type ClipMode = "auto" | AnimationClipName;
 
 function herdSize(asset: VisualizationAsset, lowPerformance: boolean): number {
-  const n = asset.archetype === "plant" ? 14 : asset.sizeM < 0.2 ? 6 : asset.sizeM < 3 ? 4 : 3;
+  const n = asset.archetype === "plant" || asset.archetype === "herb" ? 14 : asset.type === "plant" || asset.archetype === "sessile" ? 7 : asset.sizeM < 0.2 ? 6 : asset.sizeM < 3 ? 4 : 3;
   return lowPerformance ? Math.ceil(n / 2) : n;
 }
 

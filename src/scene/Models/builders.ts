@@ -1,5 +1,8 @@
-import type { Object3D } from "three";
 import type { ModelArchetype, VisualizationAsset } from "../../data/schema";
+import { INVERTEBRATE_BUILDERS } from "./archetypes/invertebrates";
+import { PLANT_BUILDERS } from "./archetypes/plants";
+import { VERTEBRATE_BUILDERS } from "./archetypes/vertebrates";
+import { lowerLimb, limb, p, tailChain, type Params } from "./parts";
 import { RigBuilder, type Lod, type Rig, type Style } from "./rig";
 
 /**
@@ -7,37 +10,6 @@ import { RigBuilder, type Lod, type Rig, type Style } from "./rig";
  * 约定：体长归一化为 1（翼龙为翼展、人族为身高），前方 +Z，上方 +Y，地面 y = 0。
  * 关节命名在同一原型内固定，供 animation.ts 使用。
  */
-
-type Params = Record<string, number>;
-const p = (params: Params | undefined, key: string, fallback: number) => params?.[key] ?? fallback;
-
-/** 从关节向下（-Y）伸出的肢体段（上粗下细的圆柱），返回该段关节。 */
-function limb(b: RigBuilder, parent: Object3D, name: string, length: number, radius: number, tone: "body" | "accent" = "body") {
-  const j = b.joint(name, parent);
-  b.part(j, b.cyl(tone), 0, -length / 2, 0, radius * 2, length, radius * 2);
-  return j;
-}
-
-/** 关节下方的末段肢体（圆柱，下端更细），用于小腿 / 前臂。 */
-function lowerLimb(b: RigBuilder, j: Object3D, length: number, radius: number) {
-  b.part(j, b.cyl("body", 0.75), 0, -length / 2, 0, radius * 2, length, radius * 2);
-}
-
-/** 向后（-Z）延伸的锥形链（尾巴），返回各节关节。 */
-function tailChain(b: RigBuilder, parent: Object3D, prefix: string, segments: number, length: number, radius: number) {
-  const joints: Object3D[] = [];
-  let cur = parent;
-  const seg = length / segments;
-  for (let i = 0; i < segments; i++) {
-    const j = b.joint(`${prefix}${i}`, cur, 0, 0, i === 0 ? 0 : -seg);
-    const r = radius * (1 - i / segments);
-    const m = b.part(j, b.cone(), 0, 0, -seg / 2, r * 2, seg, r * 2);
-    m.rotation.x = -Math.PI / 2;
-    joints.push(j);
-    cur = j;
-  }
-  return joints;
-}
 
 function trilobite(b: RigBuilder): number {
   const body = b.joint("body", b.root, 0, 0.07, 0);
@@ -81,14 +53,26 @@ function fish(b: RigBuilder, params?: Params): number {
   const tailRoot = b.joint("tailRoot", body, 0, 0, -0.25);
   b.part(tailRoot, b.blob(), 0, 0, -0.12, 0.1, depth * 0.6, 0.32);
   const tailFin = b.joint("tailFin", tailRoot, 0, 0, -0.27);
-  const tf = b.part(tailFin, b.cone("accent", 3), 0, 0, -0.08, 0.02, 0.18 * fin + 0.08, depth * 1.3);
-  tf.rotation.x = -Math.PI / 2;
+  if (p(params, "shark", 0) > 0) {
+    // 歪尾：上叶长、下叶短
+    const up = b.part(tailFin, b.cone("accent", 3), 0, depth * 0.35, -0.06, 0.02, depth * 1.4, 0.08);
+    up.rotation.x = -0.7;
+    const low = b.part(tailFin, b.cone("accent", 3), 0, -depth * 0.2, -0.03, 0.02, depth * 0.7, 0.06);
+    low.rotation.x = Math.PI + 0.7;
+  } else {
+    const tf = b.part(tailFin, b.cone("accent", 3), 0, 0, -0.08, 0.02, 0.18 * fin + 0.08, depth * 1.3);
+    tf.rotation.x = -Math.PI / 2;
+  }
+  if (p(params, "flatHead", 0) > 0) b.part(body, b.blob(), 0, -depth * 0.1, 0.38, 0.24, depth * 0.55, 0.22); // 扁平头（提塔利克鱼）
   for (const side of [1, -1]) {
     const j = b.joint(`pectoral${side > 0 ? "L" : "R"}`, body, side * 0.09, -depth * 0.25, 0.2);
     const m = b.part(j, b.cone("accent", 3), side * 0.06, 0, -0.02, 0.01, 0.15 * fin, 0.08 * fin);
     m.rotation.z = side * (Math.PI / 2 + 0.4);
   }
-  if (b.lod === 0) b.part(body, b.cone("accent", 3), 0, depth * 0.55, 0.05, 0.02, depth * 0.5, 0.15); // 背鳍
+  if (b.lod === 0 || p(params, "shark", 0) > 0) {
+    const dorsal = p(params, "shark", 0) > 0 ? 1.6 : 1;
+    b.part(body, b.cone("accent", 3), 0, depth * 0.5 + depth * 0.25 * dorsal, 0.05, 0.02, depth * 0.5 * dorsal, 0.15); // 背鳍
+  }
   return depth + 0.04;
 }
 
@@ -154,26 +138,67 @@ function quadruped(b: RigBuilder, params?: Params): number {
     lowerLimb(b, lower, legLen * 0.5, r * 0.85);
     if (b.lod === 0) b.part(lower, b.cyl("accent", 1.1), 0, -legLen * 0.5, 0, r * 2.1, 0.03, r * 2.1); // 足
   }
+  const sail = p(params, "sail", 0);
+  if (sail > 0) {
+    // 背帆（异齿龙）：沿脊背的半椭圆薄片
+    b.part(body, b.blob("accent"), 0, bodyH * 0.45 + sail * 0.15, -0.02, 0.015, sail * 0.36, 0.5);
+  }
+  const plates = p(params, "plates", 0);
+  if (plates > 0) {
+    // 背板（剑龙）：两列交错的菱形骨板
+    const n = b.lod === 0 ? 7 : 4;
+    for (let i = 0; i < n; i++) {
+      const z = 0.3 - (i / (n - 1)) * 0.72;
+      const h = plates * 0.16 * Math.sin(((i + 1) / (n + 1)) * Math.PI);
+      const m = b.part(body, b.box("accent"), (i % 2 ? 1 : -1) * 0.03, bodyH * 0.45 + h / 2, z, 0.012, h, h * 0.8);
+      m.rotation.x = Math.PI / 4;
+    }
+  }
+  const frill = p(params, "frill", 0);
+  if (frill > 0) {
+    // 颈盾 + 三角（三角龙）
+    const f = b.part(head, b.blob("accent"), 0, 0.1, -0.08, 0.36 * frill, 0.32 * frill, 0.04);
+    f.rotation.x = -0.4;
+    for (const [x, y, len] of [[0.06, 0.08, 0.2], [-0.06, 0.08, 0.2], [0, -0.02, 0.08]] as const) {
+      const m = b.part(head, b.cone("accent", 4), x, y, 0.16, 0.035, len * frill, 0.035);
+      m.rotation.x = Math.PI / 2 - 0.5;
+    }
+  }
   const tail = p(params, "tail", 0.5);
-  if (tail > 0.05) tailChain(b, b.joint("tailBase", body, 0, 0, -0.34), "tail", b.lod === 0 ? 3 : 2, 0.45 * tail, 0.07);
-  return bodyY + bodyH * 0.6 + 0.1;
+  if (tail > 0.05) {
+    const tails = tailChain(b, b.joint("tailBase", body, 0, 0, -0.34), "tail", b.lod === 0 ? 3 : 2, 0.45 * tail, 0.07);
+    if (plates > 0) {
+      // 尾刺
+      for (const side of [1, -1]) {
+        const m = b.part(tails[tails.length - 1]!, b.cone("accent", 3), side * 0.04, 0.03, -0.05, 0.02, 0.12, 0.02);
+        m.rotation.set(-0.6, 0, -side * 0.9);
+      }
+    }
+  }
+  return bodyY + bodyH * 0.6 + 0.1 + sail * 0.33 + plates * 0.14;
 }
 
-function theropod(b: RigBuilder): number {
+/** 兽脚类。参数：bulk 体型粗细；sail 背帆（棘龙）；snout 吻长（棘龙的长吻）；arms 前肢长。 */
+function theropod(b: RigBuilder, params?: Params): number {
+  const bulk = p(params, "bulk", 1);
+  const sail = p(params, "sail", 0);
+  const snout = p(params, "snout", 1);
+  const arms = p(params, "arms", 1);
   const pelvis = b.joint("body", b.root, 0, 0.4, 0);
-  b.part(pelvis, b.blob(), 0, 0.02, 0.08, 0.22, 0.24, 0.48);
+  b.part(pelvis, b.blob(), 0, 0.02, 0.08, 0.22 * bulk, 0.24 * bulk, 0.48);
+  if (sail > 0) b.part(pelvis, b.blob("accent"), 0, 0.12 * bulk + sail * 0.1, 0.02, 0.012, sail * 0.26, 0.42);
   const neck = b.joint("neck", pelvis, 0, 0.06, 0.3);
   neck.rotation.x = -0.25;
   b.part(neck, b.blob(), 0, 0.03, 0.04, 0.12, 0.14, 0.14);
   const head = b.joint("head", neck, 0, 0.06, 0.08);
   head.rotation.x = 0.25;
-  b.part(head, b.box(), 0, 0.02, 0.1, 0.13, 0.12, 0.24);
+  b.part(head, b.box(), 0, 0.02, 0.1 * snout, 0.13 * Math.min(1, bulk), 0.12 * Math.min(1, bulk), 0.24 * snout);
   if (b.lod === 0) for (const side of [1, -1]) b.part(head, b.blob("accent"), side * 0.06, 0.06, 0.1, 0.025, 0.025, 0.025);
   const jaw = b.joint("jaw", head, 0, -0.04, 0.0);
-  b.part(jaw, b.box("accent"), 0, -0.015, 0.11, 0.11, 0.035, 0.22);
+  b.part(jaw, b.box("accent"), 0, -0.015, 0.11 * snout, 0.11 * Math.min(1, bulk), 0.035, 0.22 * snout);
   for (const side of [1, -1]) {
     const arm = b.joint(`arm${side > 0 ? "L" : "R"}`, pelvis, side * 0.08, -0.04, 0.26);
-    const m = b.part(arm, b.cone(), 0, -0.04, 0.02, 0.025, 0.09, 0.025);
+    const m = b.part(arm, b.cone(), 0, -0.04 * arms, 0.02, 0.025, 0.09 * arms, 0.025);
     m.rotation.x = Math.PI - 0.6;
   }
   tailChain(b, b.joint("tailBase", pelvis, 0, 0.02, -0.15), "tail", b.lod === 0 ? 3 : 2, 0.55, 0.1);
@@ -187,7 +212,7 @@ function theropod(b: RigBuilder): number {
     lowerLimb(b, shinJ, 0.21, 0.035);
     b.part(shinJ, b.box("accent"), 0, -0.21, 0.04, 0.06, 0.02, 0.1);
   }
-  return 0.62;
+  return 0.62 + sail * 0.2;
 }
 
 function pterosaur(b: RigBuilder): number {
@@ -242,7 +267,13 @@ const BUILDERS: Record<ModelArchetype, (b: RigBuilder, params?: Params) => numbe
   theropod,
   pterosaur,
   hominin,
+  ...INVERTEBRATE_BUILDERS,
+  ...PLANT_BUILDERS,
+  ...VERTEBRATE_BUILDERS,
 };
+
+/** 全部体型原型（测试遍历用）。 */
+export const ARCHETYPES = Object.keys(BUILDERS) as ModelArchetype[];
 
 /** 构建一个模型实例（局部单位：体长 = 1）。调用方负责 dispose。 */
 export function buildRig(asset: VisualizationAsset, lod: Lod, style: Style): Rig {

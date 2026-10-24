@@ -1,4 +1,5 @@
 import type { VisualizationAsset } from "../schema";
+import { VISUALS_BATCH1 } from "./batch1";
 
 /**
  * 代表性生物的视觉资产。体长为常见文献量级的近似值，仅用于观察窗中的比例；
@@ -20,6 +21,7 @@ export const VISUALS: VisualizationAsset[] = [
   { id: "viz-afarensis", type: "human", archetype: "hominin", sizeM: 1.1, color: "#7b5e47", accent: "#c9a27e", params: { stoop: 0.15, armLength: 1.15 }, animationSet: ["idle", "move", "eat"], locomotion: "walk", preferredLod: 0, style: "tone", note: "站立身高约 1.1 米。" + NOTE },
   { id: "viz-erectus", type: "human", archetype: "hominin", sizeM: 1.6, color: "#8a6a50", accent: "#d4b08a", params: { stoop: 0.05, armLength: 1 }, animationSet: ["idle", "move", "eat"], locomotion: "walk", preferredLod: 0, style: "tone", note: "站立身高约 1.6 米。" + NOTE },
   { id: "viz-sapiens", type: "human", archetype: "hominin", sizeM: 1.7, color: "#9a7a5e", accent: "#e0c2a0", params: { stoop: 0, armLength: 0.95 }, animationSet: ["idle", "move", "eat"], locomotion: "walk", preferredLod: 0, style: "tone", note: "站立身高约 1.7 米。" + NOTE },
+  ...VISUALS_BATCH1,
 ];
 
 export const VISUAL_BY_ID: Record<string, VisualizationAsset> = Object.fromEntries(VISUALS.map((v) => [v.id, v]));

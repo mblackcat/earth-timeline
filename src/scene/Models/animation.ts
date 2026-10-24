@@ -1,5 +1,11 @@
 import type { AnimationClipName, ModelArchetype } from "../../data/schema";
+import { INVERTEBRATE_CLIPS } from "./archetypes/invertebrates";
+import { PLANT_CLIPS } from "./archetypes/plants";
+import { VERTEBRATE_CLIPS } from "./archetypes/vertebrates";
+import { breathe, resetPose, rot, S, scale, type Pose } from "./pose";
 import type { Rig } from "./rig";
+
+export { resetPose } from "./pose";
 
 /**
  * 程序化关节动画（Idle / 移动 / 进食）。
@@ -8,33 +14,6 @@ import type { Rig } from "./rig";
  * 历史时间以每秒百万年推进时，恐龙仍按正常节奏行走。
  * 每帧先把关节恢复到静止姿态，再叠加当前片段的偏移，因此片段可以任意切换。
  */
-
-type Pose = (rig: Rig, t: number, phase: number) => void;
-
-function rot(rig: Rig, name: string, dx = 0, dy = 0, dz = 0) {
-  const j = rig.joints[name];
-  const r = rig.rest[name];
-  if (!j || !r) return;
-  j.rotation.set(r.x + dx, r.y + dy, r.z + dz);
-}
-
-function scale(rig: Rig, name: string, k: number) {
-  const j = rig.joints[name];
-  const r = rig.rest[name];
-  if (j && r) j.scale.setScalar(r.s * k);
-}
-
-/** 把所有关节恢复到静止姿态。 */
-export function resetPose(rig: Rig) {
-  for (const [name, j] of Object.entries(rig.joints)) {
-    const r = rig.rest[name]!;
-    j.rotation.set(r.x, r.y, r.z);
-    j.scale.setScalar(r.s);
-  }
-}
-
-const S = Math.sin;
-const breathe = (t: number, rate = 1.6) => 1 + 0.025 * S(t * rate);
 
 const CLIPS: Record<ModelArchetype, Partial<Record<AnimationClipName, Pose>>> = {
   trilobite: {
@@ -180,6 +159,9 @@ const CLIPS: Record<ModelArchetype, Partial<Record<AnimationClipName, Pose>>> = 
       rot(r, "head", 0.2 + 0.1 * S(t * 3));
     },
   },
+  ...INVERTEBRATE_CLIPS,
+  ...PLANT_CLIPS,
+  ...VERTEBRATE_CLIPS,
 };
 
 /** 该原型实际支持的片段。 */

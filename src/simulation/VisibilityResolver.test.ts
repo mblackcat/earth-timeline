@@ -1,5 +1,6 @@
 import { EVENTS } from "../data/events";
 import { SPECIES } from "../data/species";
+import { isWithinTimeRange } from "../data/schema";
 import {
   eventAnchorLonLat,
   eventEmphasisAt,
@@ -25,11 +26,15 @@ describe("species visibility", () => {
 
   it("different periods show different species", () => {
     const ids = (t: number) => visibleAt(t).species.map((s) => s.id);
-    expect(ids(500e6)).toEqual(["trilobita"]);
-    expect(ids(68e6)).toEqual(["tyrannosaurus-rex"]);
-    expect(ids(1e6)).toEqual(["homo-erectus"]);
-    expect(ids(200_000)).toEqual(["mammuthus-primigenius", "homo-erectus", "homo-sapiens"]);
-    expect(ids(0)).toEqual(["homo-sapiens"]);
+    // 恰好是生存范围包含该时刻的物种（严格按范围，PLAN §2.1）
+    const expected = (t: number) => SPECIES.filter((s) => isWithinTimeRange(s.time, t)).map((s) => s.id);
+    for (const t of [500e6, 300e6, 150e6, 68e6, 1e6, 200_000, 0, 4e9]) expect(ids(t), String(t)).toEqual(expected(t));
+    expect(ids(500e6)).toContain("trilobita");
+    expect(ids(68e6)).toContain("tyrannosaurus-rex");
+    expect(ids(68e6)).not.toContain("trilobita");
+    expect(ids(200_000)).toEqual(expect.arrayContaining(["mammuthus-primigenius", "homo-erectus", "homo-sapiens"]));
+    expect(ids(0)).toContain("homo-sapiens");
+    expect(ids(0)).not.toContain("tyrannosaurus-rex");
     expect(ids(4e9)).toEqual([]);
   });
 

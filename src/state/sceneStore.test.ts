@@ -5,6 +5,7 @@ import { loadFossilSites, startVisibilitySync, useFossilSitesStore, useSceneStor
 import { useSelectionStore } from "./selectionStore";
 import { useSettingsStore } from "./settingsStore";
 import { useTimeStore } from "./timeStore";
+import { isWithinTimeRange } from "../data/schema";
 
 function setup(startYearsAgo: number) {
   const timeStore = create<ReturnType<typeof useTimeStore.getState>>()(() => ({ ...useTimeStore.getState(), currentTimeYearsAgo: startYearsAgo, isPlaying: false }));
@@ -22,17 +23,20 @@ function setup(startYearsAgo: number) {
   return { timeStore, settingsStore, selectionStore, sceneStore, stop };
 }
 
+/** 生存范围包含该时刻的物种 id（数据扩充后不写死具体列表）。 */
+const livingAt = (t: number) => SPECIES.filter((s) => isWithinTimeRange(s.time, t)).map((s) => s.id);
+
 describe("visibility sync", () => {
   it("updates visible objects when time changes, only when the set changes", () => {
     const { timeStore, sceneStore, stop } = setup(68e6);
-    expect(sceneStore.getState().visible.species.map((s) => s.id)).toEqual(["tyrannosaurus-rex"]);
+    expect(sceneStore.getState().visible.species.map((s) => s.id)).toEqual(livingAt(68e6));
     const writes = vi.fn();
     const off = sceneStore.subscribe(writes);
     timeStore.setState({ currentTimeYearsAgo: 68.01e6 });
     expect(writes).not.toHaveBeenCalled();
     timeStore.setState({ currentTimeYearsAgo: 500e6 });
     expect(writes).toHaveBeenCalledTimes(1);
-    expect(sceneStore.getState().visible.species.map((s) => s.id)).toEqual(["trilobita"]);
+    expect(sceneStore.getState().visible.species.map((s) => s.id)).toEqual(livingAt(500e6));
     off();
     stop();
   });
@@ -40,7 +44,7 @@ describe("visibility sync", () => {
   it("does not leave stale objects after scrubbing back and forth", () => {
     const { timeStore, sceneStore, stop } = setup(0);
     for (const t of [500e6, 68e6, 3.5e6, 0, 300e6, 68e6]) timeStore.setState({ currentTimeYearsAgo: t });
-    expect(sceneStore.getState().visible.species.map((s) => s.id)).toEqual(["tyrannosaurus-rex"]);
+    expect(sceneStore.getState().visible.species.map((s) => s.id)).toEqual(livingAt(68e6));
     stop();
   });
 

@@ -1,9 +1,10 @@
 import { Color, LineSegments, Mesh, MeshLambertMaterial, type Material, type Object3D } from "three";
+import type { VisualizationAsset } from "../../data/schema";
 import { SPECIES } from "../../data/species";
 import { VISUALS, VISUAL_BY_ID } from "../../data/visuals";
 import { applyClip, clipsFor } from "./animation";
 import { advanceAnimationClock } from "./animationClock";
-import { buildRig } from "./builders";
+import { ARCHETYPES, buildRig } from "./builders";
 import { INK } from "../Ink/inkPalette";
 
 const count = (root: Object3D, type: typeof Mesh | typeof LineSegments) => {
@@ -33,6 +34,10 @@ describe("procedural models", () => {
     const r1 = buildRig(v, 1, "tone");
     expect(count(r0.root, Mesh)).toBeGreaterThan(3);
     expect(r0.height).toBeGreaterThan(0);
+    // 外形最大尺寸：体长归一化为 1，附肢 / 翼 / 冠可略超出
+    expect(r0.extent).toBeGreaterThanOrEqual(r0.height * 0.99);
+    expect(r0.extent).toBeGreaterThan(0.8);
+    expect(r0.extent).toBeLessThan(2);
     let tris0 = 0;
     let tris1 = 0;
     r0.root.traverse((o) => o instanceof Mesh && (tris0 += o.geometry.index ? o.geometry.index.count : o.geometry.getAttribute("position").count));
@@ -130,5 +135,64 @@ describe("animation", () => {
     expect(advanceAnimationClock(5, 0.016, { ...on, simPlaying: false })).toBeCloseTo(5.016, 9);
     expect(advanceAnimationClock(5, 0.016, { ...on, simPlaying: false, idleWhenPaused: false })).toBe(5);
     expect(advanceAnimationClock(5, 30, on)).toBeCloseTo(5.1, 9); // 失焦恢复不跳变
+  });
+});
+
+describe("every archetype (including ones not yet used by a species)", () => {
+  const asset = (archetype: (typeof ARCHETYPES)[number], params?: Record<string, number>): VisualizationAsset => ({
+    id: `test-${archetype}`,
+    type: "animal",
+    archetype,
+    sizeM: 1,
+    color: "#888",
+    accent: "#ccc",
+    params,
+    animationSet: ["idle"],
+    locomotion: "walk",
+    preferredLod: 0,
+    style: "tone",
+    note: "",
+  });
+
+  // 各原型的代表性参数组合：默认值 + 每个形态开关
+  const variants: [string, (typeof ARCHETYPES)[number], Record<string, number> | undefined][] = [
+    ...ARCHETYPES.map((a) => [a, a, undefined] as [string, (typeof ARCHETYPES)[number], undefined]),
+    ["arthropod swimmer", "arthropod", { legs: 0, flaps: 1, grasp: 1, segments: 11 }],
+    ["arthropod spiny", "arthropod", { legs: 7, spines: 7, antennae: 0 }],
+    ["arthropod telson", "arthropod", { telson: 1, antennae: 1 }],
+    ...[0, 1, 2, 3].map((form) => [`sessile form ${form}`, "sessile", { form }] as [string, "sessile", Record<string, number>]),
+    ["cephalopod straight", "cephalopod", { coiled: 0 }],
+    ...[0, 1, 2, 3, 4, 5].map((form) => [`tree form ${form}`, "tree", { form }] as [string, "tree", Record<string, number>]),
+    ["sauropod brachiosaur", "sauropod", { neck: 0.45, frontLeg: 1.3 }],
+    ["plesiosaur", "marineReptile", { neck: 0.4, fluke: 0 }],
+    ["shark", "fish", { shark: 1 }],
+    ["tiktaalik", "fish", { flatHead: 1 }],
+    ["stegosaur", "quadruped", { plates: 1, tail: 0.8 }],
+    ["ceratopsian", "quadruped", { frill: 1 }],
+    ["sail-back", "quadruped", { sail: 1, sprawl: 1 }],
+    ["spinosaur", "theropod", { sail: 1, snout: 1.5, arms: 1.6 }],
+  ];
+
+  it.each(variants)("%s builds at both LODs and all styles with a sane size", (_n, archetype, params) => {
+    for (const lod of [0, 1] as const) {
+      for (const style of ["tone", "line", "plain"] as const) {
+        const r = buildRig(asset(archetype, params), lod, style);
+        expect(count(r.root, Mesh)).toBeGreaterThan(1);
+        expect(r.height).toBeGreaterThan(0);
+        expect(r.extent).toBeGreaterThan(0.5);
+        expect(r.extent).toBeLessThan(2.2);
+        r.dispose();
+      }
+    }
+  });
+
+  it.each(ARCHETYPES)("%s has an idle clip and every clip runs without leaving NaN in joints", (archetype) => {
+    expect(clipsFor(archetype)).toContain("idle");
+    const r = buildRig(asset(archetype), 0, "plain");
+    for (const clip of clipsFor(archetype)) {
+      applyClip(r, archetype, clip, 1.7, 0.3);
+      for (const j of Object.values(r.joints)) expect([j.rotation.x, j.rotation.y, j.rotation.z, j.scale.x].every(Number.isFinite)).toBe(true);
+    }
+    r.dispose();
   });
 });

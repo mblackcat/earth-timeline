@@ -1,4 +1,5 @@
 import {
+  Box3,
   BoxGeometry,
   BufferGeometry,
   ConeGeometry,
@@ -10,6 +11,7 @@ import {
   LineSegments,
   Mesh,
   Object3D,
+  Vector3,
   type Material,
 } from "three";
 import { INK } from "../Ink/inkPalette";
@@ -28,8 +30,10 @@ export interface Rig {
   root: Group;
   joints: Record<string, Object3D>;
   rest: Record<string, { x: number; y: number; z: number; s: number }>;
-  /** 模型高度（局部单位，体长归一化为 1），用于在地球上按屏幕尺寸缩放。 */
+  /** 模型高度（局部单位，体长归一化为 1）。 */
   height: number;
+  /** 外形最大尺寸（静止姿态包围盒长 / 宽 / 高的最大值），用于在地球上按屏幕尺寸缩放。 */
+  extent: number;
   dispose(): void;
 }
 
@@ -89,11 +93,13 @@ export class RigBuilder {
     const rest: Rig["rest"] = {};
     for (const [name, j] of Object.entries(this.joints)) rest[name] = { x: j.rotation.x, y: j.rotation.y, z: j.rotation.z, s: j.scale.x };
     const root = this.root;
+    const size = new Box3().setFromObject(root).getSize(new Vector3());
     return {
       root,
       joints: this.joints,
       rest,
       height,
+      extent: Math.max(size.x, size.y, size.z, height),
       dispose() {
         root.traverse((o) => {
           if (o instanceof Mesh || o instanceof LineSegments) {
