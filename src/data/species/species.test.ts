@@ -1,10 +1,11 @@
 import sitesRaw from "../../../public/data/species/pbdb-sites.json?raw";
-import { PBDB_NAMES, SPECIES } from "./index";
+import rangesRaw from "../../../public/data/species/gbif-ranges.json?raw";
+import { GBIF_NAMES, PBDB_NAMES, SPECIES } from "./index";
 import { SOURCES } from "../sources";
 import { GEO_UNITS } from "../geology/timescale";
 import { VISUAL_BY_ID } from "../visuals";
 import { ARCHETYPES } from "../../scene/Models/builders";
-import type { FossilSitesFile } from "../schema";
+import type { FossilSitesFile, ModernRangesFile } from "../schema";
 
 const sitesFile = JSON.parse(sitesRaw) as FossilSitesFile;
 
@@ -27,14 +28,13 @@ describe("representative species (PLAN §5.3)", () => {
     }
   });
 
-  it("every Paleozoic and Mesozoic period has at least 3 species, including plants overall", () => {
-    // 第 1 批覆盖寒武纪至白垩纪；新生代各纪由第 2 批补齐
-    for (const p of GEO_UNITS.period.filter((u) => u.range.fromYearsAgo <= 538_800_000 && u.range.toYearsAgo >= 66_000_000)) {
+  it("every Phanerozoic period has at least 3 species, and land plants from the Silurian on", () => {
+    for (const p of GEO_UNITS.period.filter((u) => u.range.fromYearsAgo <= 538_800_000)) {
       const living = SPECIES.filter((s) => s.time.fromYearsAgo > p.range.toYearsAgo && s.time.toYearsAgo < p.range.fromYearsAgo);
       expect(living.length, p.name).toBeGreaterThanOrEqual(3);
     }
     // 志留纪起每个纪都有陆生植物
-    for (const p of GEO_UNITS.period.filter((u) => u.range.fromYearsAgo <= 443_100_000 && u.range.toYearsAgo >= 66_000_000)) {
+    for (const p of GEO_UNITS.period.filter((u) => u.range.fromYearsAgo <= 443_100_000)) {
       expect(SPECIES.some((s) => s.taxonomy?.kingdom === "Plantae" && s.time.fromYearsAgo > p.range.toYearsAgo && s.time.toYearsAgo < p.range.fromYearsAgo), p.name).toBe(true);
     }
   });
@@ -59,6 +59,26 @@ describe("representative species (PLAN §5.3)", () => {
         expect(Math.abs(lon)).toBeLessThanOrEqual(180);
         expect(Math.abs(lat)).toBeLessThanOrEqual(90);
       }
+    }
+  });
+});
+
+describe("modern ranges (GBIF)", () => {
+  const ranges = JSON.parse(rangesRaw) as ModernRangesFile;
+
+  it("cover exactly the extant taxa listed in GBIF_NAMES, with present-day sites", () => {
+    expect(ranges.format).toBe("ett-gbif-ranges/1");
+    expect(Object.keys(ranges.species).sort()).toEqual(Object.keys(GBIF_NAMES).sort());
+    for (const [id, name] of Object.entries(GBIF_NAMES)) {
+      const sp = SPECIES.find((s) => s.id === id);
+      expect(sp, id).toBeDefined();
+      // 只有延续至今的类群才有现代分布
+      expect(sp!.time.toYearsAgo, id).toBe(0);
+      expect(sp!.sourceIds, id).toContain("gbif");
+      const r = ranges.species[id]!;
+      expect(r.gbifName).toBe(name);
+      expect(r.sites.length, id).toBeGreaterThan(0);
+      for (const [lon, lat] of r.sites) expect(Math.abs(lon) <= 180 && Math.abs(lat) <= 90).toBe(true);
     }
   });
 });

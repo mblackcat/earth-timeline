@@ -4,14 +4,18 @@
 
 export type AbundanceTier = 1 | 2 | 3 | 4;
 
+/** 各数据源的分档下限（等级 2 / 3 / 4）。GBIF 观测记录比化石记录多约两个数量级。 */
+const TIER_THRESHOLDS = { pbdb: [30, 300, 3_000], gbif: [3_000, 30_000, 300_000] } as const;
+
 /**
- * 记录数的数量级 → 丰度等级：1 < 30；2 = 30–299；3 = 300–2,999；4 ≥ 3,000。
- * 记录数（PBDB 化石记录 / GBIF 观测）受保存条件与采样强度影响，只是丰度的粗略代理。
+ * 记录数的数量级 → 丰度等级。PBDB 化石记录：1 < 30；2 = 30–299；3 = 300–2,999；4 ≥ 3,000。
+ * GBIF 现代观测：门槛各高两个数量级。记录数受保存条件、调查强度影响，只是丰度的粗略代理。
  */
-export function abundanceTier(records: number): AbundanceTier {
-  if (records >= 3_000) return 4;
-  if (records >= 300) return 3;
-  if (records >= 30) return 2;
+export function abundanceTier(records: number, source: keyof typeof TIER_THRESHOLDS = "pbdb"): AbundanceTier {
+  const [t2, t3, t4] = TIER_THRESHOLDS[source];
+  if (records >= t4) return 4;
+  if (records >= t3) return 3;
+  if (records >= t2) return 2;
   return 1;
 }
 

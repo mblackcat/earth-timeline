@@ -138,6 +138,22 @@ function quadruped(b: RigBuilder, params?: Params): number {
     lowerLimb(b, lower, legLen * 0.5, r * 0.85);
     if (b.lod === 0) b.part(lower, b.cyl("accent", 1.1), 0, -legLen * 0.5, 0, r * 2.1, 0.03, r * 2.1); // 足
   }
+  if (p(params, "horn", 0) > 0) {
+    // 鼻角（披毛犀）
+    const h = p(params, "horn", 0);
+    const m = b.part(head, b.cone("accent", 4), 0, 0.08, 0.17, 0.05, 0.22 * h, 0.05);
+    m.rotation.x = 0.5;
+    if (h > 0.6) b.part(head, b.cone("accent", 4), 0, 0.1, 0.08, 0.04, 0.1 * h, 0.04).rotation.x = 0.3;
+  }
+  if (p(params, "antlers", 0) > 0) {
+    // 掌状鹿角（大角鹿、驯鹿）
+    const a = p(params, "antlers", 0);
+    for (const side of [1, -1]) {
+      const beam = b.part(head, b.cone("accent", 3), side * 0.12 * a, 0.14, 0, 0.03, 0.3 * a, 0.03);
+      beam.rotation.z = -side * 1.1;
+      b.part(head, b.blob("accent"), side * 0.28 * a, 0.22, -0.02, 0.2 * a, 0.03, 0.12 * a);
+    }
+  }
   const sail = p(params, "sail", 0);
   if (sail > 0) {
     // 背帆（异齿龙）：沿脊背的半椭圆薄片
@@ -175,7 +191,7 @@ function quadruped(b: RigBuilder, params?: Params): number {
       }
     }
   }
-  return bodyY + bodyH * 0.6 + 0.1 + sail * 0.33 + plates * 0.14;
+  return bodyY + bodyH * 0.6 + 0.1 + sail * 0.33 + plates * 0.14 + p(params, "antlers", 0) * 0.2;
 }
 
 /** 兽脚类。参数：bulk 体型粗细；sail 背帆（棘龙）；snout 吻长（棘龙的长吻）；arms 前肢长。 */

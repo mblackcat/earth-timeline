@@ -4,7 +4,7 @@ import { Quaternion, Vector3, type Group, type PerspectiveCamera } from "three";
 import type { LonLat, PaleoPointsFile, VisualizationAsset } from "../../data/schema";
 import { VISUAL_BY_ID } from "../../data/visuals";
 import { useGeographyStore } from "../../state/geographyStore";
-import { useFossilSitesStore, usePaleoPointsStore, useSceneStore } from "../../state/sceneStore";
+import { useFossilSitesStore, useModernRangesStore, usePaleoPointsStore, useSceneStore } from "../../state/sceneStore";
 import { useSelectionStore } from "../../state/selectionStore";
 import { useSettingsStore } from "../../state/settingsStore";
 import { useViewStore } from "../../state/viewStore";
@@ -33,6 +33,8 @@ interface Candidate {
   asset: VisualizationAsset;
   /** 该物种的现代化石点与本模型所在点的下标：每帧按当前参考系求位置（随板块漂移）。 */
   modernSites: LonLat[];
+  /** 现代观测点（GBIF）：全新世时 siteIndex 指向这里。 */
+  living?: LonLat[];
   siteIndex: number;
   lonLat: LonLat;
   heading: number;
@@ -60,7 +62,7 @@ function Creature({ c, index, paleo }: { c: Candidate; index: number; paleo: Pal
     const fKey = pf.kind === "paleo" ? pf.f : -1;
     if (fKey !== lastF.current) {
       lastF.current = fKey;
-      const ll = siteInFrame(c.speciesId, c.modernSites, c.siteIndex, pf, paleo) ?? c.lonLat;
+      const ll = siteInFrame(c.speciesId, c.modernSites, c.siteIndex, pf, paleo, c.living) ?? c.lonLat;
       pos.set(...lonLatToXYZ(ll[0], ll[1], SURFACE_R));
       orient.setFromUnitVectors(UP, pos.clone().normalize()).multiply(new Quaternion().setFromAxisAngle(UP, c.heading));
       g.position.copy(pos);
@@ -98,6 +100,7 @@ export function GlobeCreatures() {
   const data = useFossilSitesStore((s) => s.data);
   const paleo = usePaleoPointsStore((s) => s.data);
   const slice = useGeographyStore((s) => s.slice);
+  const ranges = useModernRangesStore((s) => s.data);
   const lowPerformance = useSettingsStore((s) => s.lowPerformance);
   // 视图信息由相机控制器节流发布；量化后再参与计算，避免细微移动反复重建
   const lon = useViewStore((s) => Math.round(s.lon / 2) * 2);
@@ -112,34 +115,38 @@ export function GlobeCreatures() {
       .filter((s) => s.visualizationId && VISUAL_BY_ID[s.visualizationId])
       .map((s) => {
         const modern = data.species[s.id]?.sites ?? [];
+        // 全新世的现生类群用现代观测点；其余情况按化石点下标
+        const living = frame.kind === "modern" && ranges?.species[s.id]?.sites.length ? ranges.species[s.id]!.sites : undefined;
+        const base = living ?? modern;
         const idx: number[] = [];
         const sites: LonLat[] = [];
-        modern.forEach((_, i) => {
-          const p = siteInFrame(s.id, modern, i, frame, paleo);
+        base.forEach((_, i) => {
+          const p = siteInFrame(s.id, modern, i, frame, paleo, living);
           if (p) {
             idx.push(i);
             sites.push(p);
           }
         });
-        return { speciesId: s.id, sites, idx, modern };
+        return { speciesId: s.id, sites, idx, modern, living, base };
       });
     return pickCreatureSites(entries, [lon, lat], altitude, lowPerformance ? 3 : 6).map(({ speciesId, lonLat, siteIndex }) => {
       const sp = species.find((s) => s.id === speciesId)!;
       const e = entries.find((x) => x.speciesId === speciesId)!;
       const original = e.idx[siteIndex]!;
-      const m = e.modern[original]!;
+      const m = e.base[original]!;
       return {
-        key: `${speciesId}#${original}`,
+        key: `${speciesId}#${e.living ? "L" : ""}${original}`,
         speciesId,
         asset: VISUAL_BY_ID[sp.visualizationId!]!,
         modernSites: e.modern,
+        living: e.living,
         siteIndex: original,
         lonLat,
         // 朝向按现代坐标取，漂移中保持不变
         heading: ((m[0] * 7.3 + m[1] * 3.1) % (Math.PI * 2)) || 0,
       };
     });
-  }, [species, data, paleo, slice, lon, lat, altitude, lowPerformance]);
+  }, [species, data, paleo, ranges, slice, lon, lat, altitude, lowPerformance]);
 
   return (
     <group name="globe-creatures">

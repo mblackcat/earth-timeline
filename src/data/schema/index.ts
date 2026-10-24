@@ -77,7 +77,7 @@ export interface Species {
   scientificName: string;
   commonName: string;
   /** 分类等级说明，例如"纲"、"属"、"种"。 */
-  rank: "class" | "genus" | "species";
+  rank: "class" | "family" | "genus" | "species";
   description: string;
   /** 用于展示的近似生存范围，不代表精确起源/灭绝时间。 */
   time: TimeRange;
@@ -91,6 +91,27 @@ export interface Species {
   evidenceNote: string;
   sourceIds: string[];
   isSample?: boolean;
+}
+
+/** 现生类群的现代观测点（由 scripts/fetch-gbif-ranges.mjs 生成）。 */
+export interface ModernRangesFile {
+  format: "ett-gbif-ranges/1";
+  sourceId: string;
+  generated: string;
+  note: string;
+  species: Record<
+    string,
+    {
+      gbifName: string;
+      taxonKey: number;
+      /** 符合过滤条件的 GBIF 观测记录数。 */
+      records: number;
+      /** 地图栅格中有记录的 1° 格数（抽样前）。 */
+      cells: number;
+      /** 去重后的分布点（经纬度，取整到 1°）。 */
+      sites: LonLat[];
+    }
+  >;
 }
 
 /** 化石点数据文件（由 scripts/fetch-pbdb-sites.mjs 生成）。 */
@@ -130,7 +151,8 @@ export type ModelArchetype =
   | "sauropod"
   | "marineReptile"
   | "bird"
-  | "insect";
+  | "insect"
+  | "whale";
 
 export type AnimationClipName = "idle" | "move" | "eat";
 

@@ -4,7 +4,7 @@ import { eventPositionInFrame, speciesSitesInFrame } from "../simulation/paleoPo
 import { sphericalCentroid } from "../simulation/VisibilityResolver";
 import { currentPaleoFrame } from "./paleoFrame";
 import { timeEngine } from "../timeline/runtime";
-import { useFossilSitesStore, usePaleoPointsStore } from "./sceneStore";
+import { useFossilSitesStore, useModernRangesStore, usePaleoPointsStore } from "./sceneStore";
 import { useSelectionStore } from "./selectionStore";
 import { useViewStore } from "./viewStore";
 
@@ -29,9 +29,16 @@ export function focusEventOnGlobe(event: HistoricalEvent): boolean {
 /** 相机对准某物种化石点的球面中心。没有化石点时返回 false。 */
 export function focusSpeciesOnGlobe(speciesId: string): boolean {
   const modern = useFossilSitesStore.getState().data?.species[speciesId]?.sites ?? [];
-  const sites = speciesSitesInFrame(speciesId, modern, currentPaleoFrame(), usePaleoPointsStore.getState().data);
+  const living = useModernRangesStore.getState().data?.species[speciesId]?.sites;
+  const sites = speciesSitesInFrame(speciesId, modern, currentPaleoFrame(), usePaleoPointsStore.getState().data, living);
   const c = sphericalCentroid(sites);
   if (!c) return false;
   useViewStore.getState().requestCamera("focus", { lon: c[0], lat: c[1], altitude: 1.4 });
   return true;
+}
+
+/** 从百科跳到物种生存年代的中点，并在地图上选中它。 */
+export function jumpToSpecies(speciesId: string, time: { fromYearsAgo: number; toYearsAgo: number }): void {
+  timeEngine.seek((time.fromYearsAgo + time.toYearsAgo) / 2);
+  useSelectionStore.getState().selectSpecies(speciesId);
 }

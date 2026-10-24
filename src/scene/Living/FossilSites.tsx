@@ -1,9 +1,9 @@
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import { BufferAttribute, BufferGeometry, Color, Vector3 } from "three";
-import type { FossilSitesFile, PaleoPointsFile, Species } from "../../data/schema";
+import type { FossilSitesFile, ModernRangesFile, PaleoPointsFile, Species } from "../../data/schema";
 import { useGeographyStore } from "../../state/geographyStore";
-import { useFossilSitesStore, usePaleoPointsStore, useSceneStore } from "../../state/sceneStore";
+import { useFossilSitesStore, useModernRangesStore, usePaleoPointsStore, useSceneStore } from "../../state/sceneStore";
 import type { Frame } from "../../simulation/paleoMorph";
 import { speciesSitesInFrame } from "../../simulation/paleoPositions";
 import { currentPaleoFrame, paleoFrameNow } from "../../state/paleoFrame";
@@ -42,10 +42,10 @@ function buildPoints(entries: { id: string; sites: [number, number][] }[]): Buil
   return { geometry, owners };
 }
 
-function visibleSites(species: Species[], data: FossilSitesFile | null, paleo: PaleoPointsFile | null, frame: Frame) {
+function visibleSites(species: Species[], data: FossilSitesFile | null, paleo: PaleoPointsFile | null, ranges: ModernRangesFile | null, frame: Frame) {
   if (!data) return [];
   return species
-    .map((s) => ({ id: s.id, sites: speciesSitesInFrame(s.id, data.species[s.id]?.sites ?? [], frame, paleo) }))
+    .map((s) => ({ id: s.id, sites: speciesSitesInFrame(s.id, data.species[s.id]?.sites ?? [], frame, paleo, ranges?.species[s.id]?.sites) }))
     .filter((e) => e.sites.length);
 }
 
@@ -74,6 +74,7 @@ function writePositions(geometry: BufferGeometry, entries: { sites: [number, num
 export function FossilSites() {
   const species = useSceneStore((s) => s.visible.species);
   const data = useFossilSitesStore((s) => s.data);
+  const ranges = useModernRangesStore((s) => s.data);
   const paleo = usePaleoPointsStore((s) => s.data);
   const slice = useGeographyStore((s) => s.slice);
   const selectedId = useSelectionStore((s) => s.selectedSpeciesId);
@@ -83,7 +84,7 @@ export function FossilSites() {
 
   // 化石点与海岸线始终使用同一参考系：重建切片下用古坐标，否则用现代坐标。
   // 换切片时重新求可重建的点集合；切片内的漂移在 useFrame 里原地更新
-  const entries = useMemo(() => visibleSites(species, data, paleo, paleoFrameNow(slice)), [species, data, paleo, slice]);
+  const entries = useMemo(() => visibleSites(species, data, paleo, ranges, paleoFrameNow(slice)), [species, data, paleo, ranges, slice]);
   const all = useMemo(() => buildPoints(entries), [entries]);
   const selected = useMemo(() => buildPoints(entries.filter((e) => e.id === selectedId)), [entries, selectedId]);
   useEffect(() => () => all.geometry.dispose(), [all]);
@@ -98,7 +99,7 @@ export function FossilSites() {
     const frame = currentPaleoFrame();
     if (frame.kind !== "paleo" || frame.f === lastF.current) return;
     lastF.current = frame.f;
-    const now = visibleSites(species, data, paleo, frame);
+    const now = visibleSites(species, data, paleo, ranges, frame);
     writePositions(all.geometry, now);
     writePositions(selected.geometry, now.filter((e) => e.id === selectedId));
   });
@@ -111,6 +112,8 @@ export function FossilSites() {
   });
 
   if (!entries.length) return null;
+  // 分布点很多（如 GBIF 现代分布格）时缩小选中高亮，避免连成大片色块
+  const dense = selected.owners.length > 80;
 
   const onClick = (e: ThreeEvent<MouseEvent>) => {
     if (e.delta > 4 || e.index == null) return; // 拖动地球时不算点击
@@ -134,10 +137,10 @@ export function FossilSites() {
       {selected.owners.length > 0 && (
         <>
           <points geometry={selected.geometry} raycast={() => null} renderOrder={3}>
-            <pointsMaterial color={INK.ink} size={13} sizeAttenuation={false} depthWrite={false} toneMapped={false} />
+            <pointsMaterial color={INK.ink} size={dense ? 8 : 13} sizeAttenuation={false} depthWrite={false} toneMapped={false} />
           </points>
           <points geometry={selected.geometry} raycast={() => null} renderOrder={4}>
-            <pointsMaterial color={INK.mark} size={9} sizeAttenuation={false} depthWrite={false} toneMapped={false} />
+            <pointsMaterial color={INK.mark} size={dense ? 5 : 9} sizeAttenuation={false} depthWrite={false} toneMapped={false} />
           </points>
         </>
       )}

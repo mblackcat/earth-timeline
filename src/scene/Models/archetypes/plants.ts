@@ -100,7 +100,7 @@ function tree(b: RigBuilder, params?: Params): number {
 /** 草本 / 早期有花植物。参数：stems 茎数；flower 花 / 果（0 / 1）；leaves 每茎叶对数。 */
 function herb(b: RigBuilder, params?: Params): number {
   const n = Math.max(1, Math.round(p(params, "stems", 3)));
-  const leaves = b.lod === 0 ? Math.round(p(params, "leaves", 3)) : 1;
+  const leaves = Math.min(b.lod === 0 ? Infinity : 1, Math.round(p(params, "leaves", 3)));
   const flower = p(params, "flower", 1) > 0;
   const base = b.joint("base", b.root);
   for (let i = 0; i < n; i++) {

@@ -60,7 +60,8 @@ describe("NowPanel", () => {
     expect(card).toHaveAttribute("data-kind", "species");
     expect(card).toHaveTextContent("霸王龙");
     expect(card).toHaveTextContent("1 个化石点（68 条 PBDB 记录");
-    expect(card).toHaveTextContent("Paleobiology Database");
+    // 百科性内容（来源、年代依据等）移到了百科抽屉
+    expect(screen.getByTestId("detail-wiki")).toBeInTheDocument();
   });
 });
 

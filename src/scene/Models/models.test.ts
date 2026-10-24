@@ -171,6 +171,11 @@ describe("every archetype (including ones not yet used by a species)", () => {
     ["ceratopsian", "quadruped", { frill: 1 }],
     ["sail-back", "quadruped", { sail: 1, sprawl: 1 }],
     ["spinosaur", "theropod", { sail: 1, snout: 1.5, arms: 1.6 }],
+    ["flightless bird", "bird", { flightless: 1 }],
+    ["basilosaur", "whale", { slender: 1, dorsal: 0 }],
+    ["orca", "whale", { dorsal: 1.5, head: 0.2 }],
+    ["woolly rhino", "quadruped", { horn: 1, hump: 0.5 }],
+    ["megaloceros", "quadruped", { antlers: 1 }],
   ];
 
   it.each(variants)("%s builds at both LODs and all styles with a sane size", (_n, archetype, params) => {

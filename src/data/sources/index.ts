@@ -152,6 +152,15 @@ export const SOURCES: Record<string, Source> = {
     accessed: "2026-10-17",
     note: "通过 data1.2 API（occs/list）获取，由 scripts/fetch-pbdb-sites.mjs 生成 public/data/species/pbdb-sites.json。坐标为化石点的现代经纬度。",
   },
+  gbif: {
+    id: "gbif",
+    title: "GBIF.org — Global Biodiversity Information Facility, occurrence search & maps API",
+    publisher: "GBIF Secretariat",
+    url: "https://www.gbif.org/occurrence/search",
+    license: "记录按 CC0 / CC BY / CC BY-NC 发布（各数据集分别注明）",
+    accessed: "2026-10-24",
+    note: "现代分布点：人类 / 机器观测记录（1970 年以来）在 GBIF 地图接口全球栅格中的分布格，取整到 1° 去重（scripts/fetch-gbif-ranges.mjs）。观测记录受调查强度影响，不等于完整分布。",
+  },
   "cao-2024": {
     id: "cao-2024",
     title: "Cao, X. et al. (2024). Earth's tectonic and plate boundary evolution over 1.8 billion years. Geoscience Frontiers 15: 101922.",

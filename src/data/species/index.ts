@@ -1,5 +1,8 @@
 import { calBpToYearsAgo, maToYearsAgo, type HabitatId, type Species, type TimeRange } from "../schema";
 import { PBDB_NAMES_BATCH1, SPECIES_BATCH1 } from "./batch1";
+import { PBDB_NAMES_BATCH2, SPECIES_BATCH2 } from "./batch2";
+
+export { GBIF_NAMES } from "./batch2";
 
 /**
  * PLAN §5.3 的代表性生物。
@@ -48,6 +51,7 @@ export const PBDB_NAMES: Record<string, string> = {
   "homo-erectus": "Homo erectus",
   "homo-sapiens": "Homo sapiens",
   ...PBDB_NAMES_BATCH1,
+  ...PBDB_NAMES_BATCH2,
 };
 
 export const SPECIES: Species[] = [
@@ -248,6 +252,7 @@ export const SPECIES: Species[] = [
     sourceIds: ["hublin-2017", "richter-2017", "pbdb"],
   },
   ...SPECIES_BATCH1,
+  ...SPECIES_BATCH2,
 ];
 
 export const SPECIES_BY_ID: Record<string, Species> = Object.fromEntries(SPECIES.map((s) => [s.id, s]));

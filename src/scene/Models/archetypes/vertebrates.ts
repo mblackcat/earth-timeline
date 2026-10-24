@@ -95,8 +95,34 @@ function marineReptile(b: RigBuilder, params?: Params): number {
   return bodyH + 0.12;
 }
 
-/** 鸟。翼展 = 1。参数：tail 尾长（始祖鸟为长骨质尾）。 */
+/** 不会飞的大型鸟（冠恐鸟）：身高 = 1，粗壮的腿、巨大的喙、退化的翼。 */
+function groundBird(b: RigBuilder): number {
+  const body = b.joint("body", b.root, 0, 0.5, 0);
+  b.part(body, b.blob(), 0, 0, 0, 0.32, 0.32, 0.45);
+  const neck = b.joint("neck", body, 0, 0.1, 0.16);
+  neck.rotation.x = -0.5;
+  b.part(neck, b.cyl("body", 0.85), 0, 0.12, 0, 0.1, 0.24, 0.1);
+  const head = b.joint("head", neck, 0, 0.26, 0);
+  head.rotation.x = 0.5;
+  b.part(head, b.blob(), 0, 0, 0.03, 0.14, 0.15, 0.16);
+  const beak = b.part(head, b.cone("accent", 4), 0, -0.01, 0.16, 0.1, 0.18, 0.13);
+  beak.rotation.x = Math.PI / 2;
+  for (const side of [1, -1]) {
+    const tag = side > 0 ? "L" : "R";
+    const w = b.joint(`wing${tag}`, body, side * 0.15, 0.04, 0.02);
+    b.part(w, b.blob("accent"), side * 0.03, 0, -0.04, 0.05, 0.08, 0.14);
+    const hip = b.joint(`leg${tag}`, body, side * 0.09, -0.08, 0);
+    const knee = limb(b, hip, `leg${tag}Upper`, 0.22, 0.05);
+    const shin = b.joint(`leg${tag}Lower`, knee, 0, -0.22, 0);
+    lowerLimb(b, shin, 0.2, 0.035);
+    b.part(shin, b.box("accent"), 0, -0.2, 0.04, 0.08, 0.02, 0.12);
+  }
+  return 1;
+}
+
+/** 鸟。翼展 = 1。参数：tail 尾长（始祖鸟为长骨质尾）；flightless = 1 时改为不会飞的大型鸟（身高 = 1）。 */
 function bird(b: RigBuilder, params?: Params): number {
+  if (p(params, "flightless", 0) > 0) return groundBird(b);
   const body = b.joint("body", b.root, 0, 0.18, 0);
   b.part(body, b.blob(), 0, 0, 0, 0.1, 0.1, 0.2);
   const head = b.joint("head", body, 0, 0.06, 0.11);
@@ -147,13 +173,66 @@ function insect(b: RigBuilder, params?: Params): number {
   return 0.12;
 }
 
-export const VERTEBRATE_BUILDERS = { sauropod, marineReptile, bird, insect };
+/**
+ * 鲸。体长 = 1。参数：slender 身体细长（龙王鲸）；dorsal 背鳍高（虎鲸）；head 头部比例；flipper 胸鳍长。
+ * 水平尾叶（与鱼的垂直尾鳍不同），游动时上下摆尾。
+ */
+function whale(b: RigBuilder, params?: Params): number {
+  const slender = p(params, "slender", 0);
+  const depth = 0.16 * (1 - slender * 0.45);
+  const body = b.joint("body", b.root, 0, depth * 0.6 + 0.03, 0);
+  b.part(body, b.blob(), 0, 0, 0.12, depth * 1.15, depth, 0.62);
+  const headLen = p(params, "head", 0.24);
+  const head = b.joint("head", body, 0, 0, 0.4);
+  b.part(head, b.blob(), 0, -depth * 0.05, headLen * 0.3, depth * 1.05, depth * 0.85, headLen);
+  const jaw = b.joint("jaw", head, 0, -depth * 0.3, 0.02);
+  b.part(jaw, b.box("accent"), 0, -0.01, headLen * 0.35, depth * 0.7, 0.015, headLen * 0.85);
+  for (const side of [1, -1]) {
+    const j = b.joint(`flipper${side > 0 ? "L" : "R"}`, body, side * depth * 0.5, -depth * 0.3, 0.26);
+    const len = p(params, "flipper", 0.14);
+    const m = b.part(j, b.blob("accent"), side * len * 0.45, -0.01, -0.03, len, 0.012, len * 0.32);
+    m.rotation.y = side * 0.5;
+  }
+  const dorsal = p(params, "dorsal", 0.3);
+  if (dorsal > 0) b.part(body, b.cone("accent", 3), 0, depth * 0.5 + 0.03 * dorsal, -0.05, 0.015, 0.08 * dorsal + 0.02, 0.07);
+  const tails = tailChain(b, b.joint("tailBase", body, 0, 0, -0.18), "tail", b.lod === 0 ? 3 : 2, 0.32 + slender * 0.2, depth * 0.45);
+  const fluke = b.joint("tailFin", tails[tails.length - 1]!, 0, 0, -0.1);
+  for (const side of [1, -1]) {
+    const m = b.part(fluke, b.blob("accent"), side * 0.06, 0, -0.03, 0.13, 0.012, 0.06);
+    m.rotation.y = -side * 0.4;
+  }
+  return depth * 1.6 + 0.04 + dorsal * 0.1;
+}
+
+export const VERTEBRATE_BUILDERS = { sauropod, marineReptile, bird, insect, whale };
 
 const tailSway = (r: Parameters<Pose>[0], t: number, amp: number, ph = 0) => {
   for (let i = 0; i < 4; i++) rot(r, `tail${i}`, 0, amp * S(t - i * 0.6 + ph));
 };
 
-export const VERTEBRATE_CLIPS: Record<"sauropod" | "marineReptile" | "bird" | "insect", Partial<Record<AnimationClipName, Pose>>> = {
+export const VERTEBRATE_CLIPS: Record<"sauropod" | "marineReptile" | "bird" | "insect" | "whale", Partial<Record<AnimationClipName, Pose>>> = {
+  whale: {
+    idle: (r, t, ph) => {
+      scale(r, "body", breathe(t, 0.5));
+      for (let i = 0; i < 3; i++) rot(r, `tail${i}`, 0.06 * S(t * 0.8 - i * 0.6 + ph));
+      rot(r, "tailFin", 0.1 * S(t * 0.8 - 2 + ph));
+      rot(r, "flipperL", 0, 0, 0.08 * S(t * 0.6 + ph));
+      rot(r, "flipperR", 0, 0, -0.08 * S(t * 0.6 + ph));
+    },
+    move: (r, t) => {
+      // 上下摆尾（鲸的尾叶是水平的）
+      const w = t * 2.2;
+      rot(r, "body", 0.04 * S(w + 1));
+      for (let i = 0; i < 3; i++) rot(r, `tail${i}`, 0.22 * S(w - i * 0.7));
+      rot(r, "tailFin", 0.35 * S(w - 2.2));
+      rot(r, "flipperL", 0, 0, 0.12 * S(w));
+      rot(r, "flipperR", 0, 0, -0.12 * S(w));
+    },
+    eat: (r, t) => {
+      rot(r, "jaw", 0.2 + 0.15 * S(t * 2));
+      for (let i = 0; i < 3; i++) rot(r, `tail${i}`, 0.08 * S(t - i * 0.6));
+    },
+  },
   sauropod: {
     idle: (r, t, ph) => {
       scale(r, "body", breathe(t, 0.9));
@@ -201,6 +280,7 @@ export const VERTEBRATE_CLIPS: Record<"sauropod" | "marineReptile" | "bird" | "i
   bird: {
     idle: (r, t, ph) => {
       rot(r, "head", 0.1 * S(t * 1.6 + ph), 0.5 * S(t * 0.7 + ph));
+      rot(r, "neck", -0.5 + 0.05 * S(t * 0.9 + ph));
       // 停歇时翼收拢在身侧
       rot(r, "wingL", 0, 1.2, 0);
       rot(r, "wingR", 0, -1.2, 0);

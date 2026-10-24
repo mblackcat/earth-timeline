@@ -11,6 +11,13 @@ describe("abundanceTier", () => {
     expect(abundanceTier(3_000)).toBe(4);
     expect(abundanceTier(1e6)).toBe(4);
   });
+
+  it("uses thresholds two orders of magnitude higher for GBIF observations", () => {
+    expect(abundanceTier(2_999, "gbif")).toBe(1);
+    expect(abundanceTier(3_000, "gbif")).toBe(2);
+    expect(abundanceTier(30_000, "gbif")).toBe(3);
+    expect(abundanceTier(300_000, "gbif")).toBe(4);
+  });
 });
 
 describe("globeModelPx", () => {

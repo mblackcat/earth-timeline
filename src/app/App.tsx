@@ -9,12 +9,13 @@ import { GeographyCaption } from "../scene/EarthScene/GeographyCaption";
 import { startTimeRuntime } from "../timeline/runtime";
 import { loadReferenceCoastline, startGeographySync } from "../state/geographyStore";
 import { PALEO_SLICES } from "../data/geology/slices";
-import { loadFossilSites, loadPaleoPoints, startVisibilitySync } from "../state/sceneStore";
+import { loadFossilSites, loadModernRanges, loadPaleoPoints, startVisibilitySync } from "../state/sceneStore";
 import { PALEO_POINTS_URL } from "../data/geology/reconstruction";
 import { fetchStaticJson } from "../data/fetchStatic";
 import { NowPanel } from "../components/Scene/NowPanel";
 import { DetailsCard } from "../components/Scene/DetailsCard";
 import { SpecimenViewer } from "../components/Specimen/SpecimenViewer";
+import { WikiDrawer } from "../components/Wiki/WikiDrawer";
 import { useSettingsStore } from "../state/settingsStore";
 import { ErrorBoundary } from "./ErrorBoundary";
 
@@ -31,6 +32,7 @@ export function App() {
   useEffect(() => {
     void loadFossilSites(fetchStaticJson);
     void loadPaleoPoints(PALEO_POINTS_URL, fetchStaticJson);
+    void loadModernRanges(fetchStaticJson);
   }, []);
 
   return (
@@ -54,6 +56,7 @@ export function App() {
         <SpecimenViewer />
       </main>
       <SettingsPanel />
+      <WikiDrawer />
       <footer className="timeline-region" data-testid="timeline-region">
         <Timeline leading={<PlaybackBar />} />
       </footer>

@@ -201,7 +201,10 @@ test("window resize updates the render size", async ({ page }) => {
 });
 
 test("layer toggles hide and show scene content", async ({ page }) => {
-  // 网点与涂黑不随海岸线开关变化，只比较墨色像素的减少
+  // 网点与涂黑不随海岸线开关变化，只比较墨色像素的减少。
+  // 物种扩充后现代视图有大量带墨圈的分布点，先关掉化石 / 分布点图层，单独测海岸线
+  await page.getByTestId("toggle-fossils").click();
+  await page.waitForTimeout(300);
   const withLines = (await canvasStats(page)).ink;
   await page.getByTestId("toggle-outlines").click();
   await page.waitForTimeout(300);

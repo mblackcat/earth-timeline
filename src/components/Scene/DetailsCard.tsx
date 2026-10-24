@@ -1,11 +1,10 @@
 import { EVENT_BY_ID } from "../../data/events";
 import { REGIONS } from "../../data/regions";
-import type { EvidenceLevel, Source, SpatialExtent } from "../../data/schema";
-import { getSource } from "../../data/sources";
-import { HABITAT_LABELS, SPECIES_BY_ID } from "../../data/species";
+import type { SpatialExtent } from "../../data/schema";
+import { SPECIES_BY_ID } from "../../data/species";
 import { focusEventOnGlobe, focusSpeciesOnGlobe, jumpToEvent } from "../../state/actions";
 import { useGeographyStore } from "../../state/geographyStore";
-import { useFossilSitesStore, usePaleoPointsStore } from "../../state/sceneStore";
+import { useFossilSitesStore, usePaleoPointsStore, useModernRangesStore } from "../../state/sceneStore";
 import { abundanceTier } from "../../simulation/abundance";
 import { speciesSitesInFrame } from "../../simulation/paleoPositions";
 import { currentPaleoFrame } from "../../state/paleoFrame";
@@ -14,14 +13,10 @@ import { SPECIES_COLORS_MUTED } from "../../scene/Living/speciesColors";
 import { eventAnchorLonLat } from "../../simulation/VisibilityResolver";
 import { formatTimeRange } from "../../timeline/CalendarAdapter";
 import { CATEGORY_STYLE } from "../Timeline/categories";
-
-const EVIDENCE_LABELS: Record<EvidenceLevel, string> = {
-  "well-established": "证据充分",
-  estimated: "估计值",
-  uncertain: "不确定",
-};
-
-const RANK_LABELS = { class: "纲", genus: "属", species: "种" } as const;
+import { EVIDENCE_LABELS, RANK_LABELS } from "../common/labels";
+import { Sources } from "../common/Sources";
+import { useWikiStore } from "../../state/wikiStore";
+import { WIKI_ENTRIES } from "../../data/wiki";
 
 function describeLocation(loc: SpatialExtent | undefined): string | null {
   if (!loc) return null;
@@ -30,29 +25,6 @@ function describeLocation(loc: SpatialExtent | undefined): string | null {
   const parts = [region, loc.note].filter(Boolean);
   if (loc.coordinates) parts.push(`${loc.coordinates[1].toFixed(1)}°, ${loc.coordinates[0].toFixed(1)}°（纬度, 经度）`);
   return parts.join(" · ") || null;
-}
-
-function Sources({ ids }: { ids: string[] }) {
-  return (
-    <ul className="detail-sources">
-      {ids.map((id) => {
-        const s: Source | undefined = getSource(id);
-        if (!s) return <li key={id}>{id}（来源未登记）</li>;
-        return (
-          <li key={id}>
-            {s.url ? (
-              <a href={s.url} target="_blank" rel="noreferrer">
-                {s.title}
-              </a>
-            ) : (
-              s.title
-            )}
-            {s.license && <span className="detail-license"> · {s.license}</span>}
-          </li>
-        );
-      })}
-    </ul>
-  );
 }
 
 function EventDetail({ id }: { id: string }) {
@@ -94,13 +66,17 @@ function EventDetail({ id }: { id: string }) {
 function SpeciesDetail({ id }: { id: string }) {
   const sp = SPECIES_BY_ID[id];
   const openSpecimen = useSelectionStore((s) => s.openSpecimen);
+  const openWiki = useWikiStore((s) => s.openWiki);
   const sites = useFossilSitesStore((s) => s.data?.species[id]);
+  const living = useModernRangesStore((s) => s.data?.species[id]);
   const paleo = usePaleoPointsStore((s) => s.data);
   // 切片变化时重新计数（同一切片内形变不改变可重建的点数）
   useGeographyStore((s) => s.slice);
   if (!sp) return <p className="detail-missing">未找到物种数据：{id}</p>;
   const frame = currentPaleoFrame();
   const shown = sites ? speciesSitesInFrame(id, sites.sites, frame, paleo).length : 0;
+  // 全新世的现生类群显示现代观测点
+  const showLiving = frame.kind === "modern" && !!living?.sites.length;
   return (
     <>
       <div className="detail-kicker" style={{ color: SPECIES_COLORS_MUTED[id] }}>
@@ -112,26 +88,32 @@ function SpeciesDetail({ id }: { id: string }) {
       <div className="detail-time" data-testid="detail-time">
         {formatTimeRange(sp.time)}
       </div>
-      <p className="detail-desc">{sp.description}</p>
-      <div className="detail-row">栖息环境：{sp.habitatIds.map((h) => HABITAT_LABELS[h]).join("、")}</div>
+      <p className="detail-desc">{WIKI_ENTRIES[id]?.tagline ?? sp.description}</p>
       <div className="detail-row">
         分布：
-        {!sites
+        {showLiving
+          ? `${living!.cells} 个 1° 分布格（GBIF ${living!.records.toLocaleString("zh-CN")} 条野外观测记录）`
+          : !sites
           ? "化石点数据尚未加载"
           : frame.kind === "paleo"
             ? `${sites.sites.length} 个化石点（${sites.occurrences} 条 PBDB 记录），已按板块重建旋转到 ${frame.ma} → ${frame.nextMa} Ma 之间的位置，其中 ${shown} 个可重建`
             : `${sites.sites.length} 个化石点（${sites.occurrences} 条 PBDB 记录，现代坐标）`}
       </div>
-      {sites && (
-        <div className="detail-row" data-testid="detail-abundance" title="记录数受保存条件与采样强度影响，只是丰度的粗略代理">
-          化石记录丰度：{sites.occurrences.toLocaleString("zh-CN")} 条（数量级 {abundanceTier(sites.occurrences)} / 4，仅为粗略代理）
+      {showLiving ? (
+        <div className="detail-row" data-testid="detail-abundance" title="观测记录数受调查强度影响，只是丰度的粗略代理">
+          现代观测丰度：{living!.records.toLocaleString("zh-CN")} 条（数量级 {abundanceTier(living!.records, "gbif")} / 4，仅为粗略代理）
         </div>
+      ) : (
+        sites && (
+          <div className="detail-row" data-testid="detail-abundance" title="记录数受保存条件与采样强度影响，只是丰度的粗略代理">
+            化石记录丰度：{sites.occurrences.toLocaleString("zh-CN")} 条（数量级 {abundanceTier(sites.occurrences)} / 4，仅为粗略代理）
+          </div>
+        )
       )}
-      <div className="detail-row">
-        <span className={`evidence ${sp.evidenceLevel}`}>{EVIDENCE_LABELS[sp.evidenceLevel]}</span>
-        <span className="detail-note">{sp.evidenceNote}</span>
-      </div>
       <div className="detail-actions">
+        <button type="button" onClick={() => openWiki(id)} data-testid="detail-wiki">
+          查看百科
+        </button>
         {sp.visualizationId && (
           <button type="button" onClick={() => openSpecimen(id)} data-testid="detail-specimen">
             近距离观察
@@ -143,8 +125,6 @@ function SpeciesDetail({ id }: { id: string }) {
           </button>
         )}
       </div>
-      <h4>来源</h4>
-      <Sources ids={sp.sourceIds} />
     </>
   );
 }

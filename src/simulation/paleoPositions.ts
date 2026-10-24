@@ -9,6 +9,7 @@ import { eventAnchorLonLat } from "./VisibilityResolver";
  *   （nextMa = 0 时目标为现代坐标）；只有一端能重建时用该端；两端都不能重建时不显示，
  *   绝不混用现代坐标。
  * - 现代海岸线切片或没有切片：使用现代坐标（与现代海岸线 / 参考线一致）。
+ *   现生类群若有现代观测点（GBIF，living），全新世显示观测点而不是化石点。
  */
 export type { Frame } from "./paleoMorph";
 
@@ -24,8 +25,9 @@ export function siteInFrame(
   index: number,
   frame: Frame,
   paleo: PaleoPointsFile | null,
+  living?: LonLat[] | null,
 ): LonLat | null {
-  if (frame.kind === "modern") return modernSites[index] ?? null;
+  if (frame.kind === "modern") return (living?.length ? living : modernSites)[index] ?? null;
   const byMa = paleo?.species[speciesId];
   const from = byMa?.[String(frame.ma)]?.[index];
   const to = frame.nextMa === 0 ? modernSites[index] : byMa?.[String(frame.nextMa)]?.[index];
@@ -37,8 +39,9 @@ export function speciesSitesInFrame(
   modernSites: LonLat[],
   frame: Frame,
   paleo: PaleoPointsFile | null,
+  living?: LonLat[] | null,
 ): LonLat[] {
-  if (frame.kind === "modern") return modernSites;
+  if (frame.kind === "modern") return living?.length ? living : modernSites;
   const byMa = paleo?.species[speciesId];
   const from = byMa?.[String(frame.ma)];
   const to = frame.nextMa === 0 ? modernSites : byMa?.[String(frame.nextMa)];

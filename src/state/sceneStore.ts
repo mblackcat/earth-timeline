@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { EVENTS } from "../data/events";
-import type { FossilSitesFile, HistoricalEvent, PaleoPointsFile, Species } from "../data/schema";
+import type { FossilSitesFile, HistoricalEvent, ModernRangesFile, PaleoPointsFile, Species } from "../data/schema";
 import { SPECIES } from "../data/species";
 import { resolveVisible, visibleSetKey, type VisibleSet } from "../simulation/VisibilityResolver";
 import { useSelectionStore } from "./selectionStore";
@@ -100,6 +100,36 @@ export async function loadFossilSites(
     store.setState({ loadState: "ready", data });
   } catch (err) {
     store.setState({ loadState: "error", error: err instanceof Error ? err.message : String(err) });
+  }
+}
+
+// ───────────── 现生类群的现代观测点（GBIF，全新世显示） ─────────────
+
+export const MODERN_RANGES_URL = "data/species/gbif-ranges.json";
+
+export const useModernRangesStore = create<{ loadState: FossilSitesState["loadState"]; data: ModernRangesFile | null }>()(() => ({
+  loadState: "idle",
+  data: null,
+}));
+
+export function parseModernRanges(raw: unknown): ModernRangesFile {
+  const f = raw as ModernRangesFile;
+  if (!f || f.format !== "ett-gbif-ranges/1" || typeof f.species !== "object") throw new Error("现代分布数据格式不正确");
+  return f;
+}
+
+/** 加载现代观测点。失败时全新世退回化石点（化石点也是现代坐标，参考系一致）。 */
+export async function loadModernRanges(
+  fetchJson: (url: string) => Promise<unknown>,
+  store: typeof useModernRangesStore = useModernRangesStore,
+): Promise<void> {
+  const s = store.getState();
+  if (s.loadState === "ready" || s.loadState === "loading") return;
+  store.setState({ loadState: "loading" });
+  try {
+    store.setState({ loadState: "ready", data: parseModernRanges(await fetchJson(MODERN_RANGES_URL)) });
+  } catch {
+    store.setState({ loadState: "error" });
   }
 }
 

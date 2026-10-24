@@ -1,6 +1,7 @@
 import { useTimeStore } from "../../state/timeStore";
 import { useViewStore } from "../../state/viewStore";
 import { HelpButton } from "../Help/HelpButton";
+import { useWikiStore } from "../../state/wikiStore";
 import { GEO_UNIT_BY_ID, geoPathAt } from "../../data/geology/timescale";
 import { formatTime } from "../../timeline/CalendarAdapter";
 import { EARTH_RADIUS_KM, LEVEL_LABELS } from "../../utils/geo";
@@ -12,6 +13,7 @@ export function TopBar() {
   const lon = useViewStore((s) => s.lon);
   const lat = useViewStore((s) => s.lat);
   const requestCamera = useViewStore((s) => s.requestCamera);
+  const wikiOpen = useWikiStore((s) => s.open);
   const altitudeKm = Math.round(altitude * EARTH_RADIUS_KM);
 
   return (
@@ -42,6 +44,15 @@ export function TopBar() {
         </button>
         <button type="button" onClick={() => requestCamera("default")} data-testid="btn-reset-view">
           重置视角
+        </button>
+        <button
+          type="button"
+          aria-pressed={wikiOpen}
+          onClick={() => (wikiOpen ? useWikiStore.getState().close() : useWikiStore.getState().openWiki())}
+          data-testid="btn-wiki"
+          title="生物百科"
+        >
+          生物百科
         </button>
         <HelpButton />
       </div>
