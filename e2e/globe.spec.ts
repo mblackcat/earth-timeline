@@ -162,6 +162,8 @@ test("global view and reset view buttons move the camera", async ({ page }) => {
 });
 
 test("collapsing the settings panel resizes the canvas and keeps the camera", async ({ page }) => {
+  // 软件渲染下 2000 个生物群实例使帧率很低（约 3 fps），多次画布截图需要更长时间
+  test.setTimeout(180_000);
   const box = (await page.locator("canvas").boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   for (let i = 0; i < 5; i++) await page.mouse.wheel(0, -150);
