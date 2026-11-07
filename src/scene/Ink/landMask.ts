@@ -1,18 +1,7 @@
 import type { LonLat } from "../../data/schema";
+import { unwrapRing } from "../../utils/geo";
 
-/** 经度展开为连续值：相邻点差超过 180° 时加减 360°（跨日界线的环不再横穿地图）。 */
-export function unwrapRing(ring: LonLat[]): LonLat[] {
-  if (!ring.length) return [];
-  const out: LonLat[] = [[ring[0]![0], ring[0]![1]]];
-  let offset = 0;
-  for (let i = 1; i < ring.length; i++) {
-    const d = ring[i]![0] - ring[i - 1]![0];
-    if (d > 180) offset -= 360;
-    else if (d < -180) offset += 360;
-    out.push([ring[i]![0] + offset, ring[i]![1]]);
-  }
-  return out;
-}
+export { unwrapRing };
 
 /**
  * 在等距圆柱 canvas 上填充陆地（白 = 陆地，黑 = 海洋）。每个环在 0、±360° 偏移各画一次，

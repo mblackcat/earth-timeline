@@ -1,4 +1,4 @@
-import { altitudeToLevel, graticuleLines, lonLatToXYZ, polylinesToSegments, xyzToLonLat } from "./geo";
+import { altitudeToLevel, angularDistanceDeg, graticuleLines, horizonDeg, lonLatToXYZ, offsetLonLat, polylinesToSegments, unwrapRing, xyzToLonLat } from "./geo";
 
 describe("lonLatToXYZ / xyzToLonLat", () => {
   it("maps reference points to the documented axes", () => {
@@ -56,5 +56,34 @@ describe("altitudeToLevel", () => {
       expect(level).toBeGreaterThanOrEqual(prev);
       prev = level;
     }
+  });
+});
+
+describe("spherical helpers", () => {
+  it("angular distance", () => {
+    expect(angularDistanceDeg([0, 0], [90, 0])).toBeCloseTo(90);
+    expect(angularDistanceDeg([10, 20], [10, 20])).toBeCloseTo(0);
+    expect(angularDistanceDeg([179, 0], [-179, 0])).toBeCloseTo(2);
+  });
+
+  it("offsetLonLat moves along a great circle by the given distance and bearing", () => {
+    const north = offsetLonLat([0, 0], 0, 1);
+    expect(north[0]).toBeCloseTo(0);
+    expect(north[1]).toBeCloseTo(1);
+    const east = offsetLonLat([0, 60], Math.PI / 2, 1);
+    expect(east[0]).toBeGreaterThan(1.9);
+    expect(angularDistanceDeg([0, 60], east)).toBeCloseTo(1);
+    expect(offsetLonLat([179.5, 0], Math.PI / 2, 1)[0]).toBeCloseTo(-179.5);
+    expect(offsetLonLat([5, 5], 1, 0)).toEqual([5, 5]);
+  });
+
+  it("horizon angle shrinks as the camera gets closer", () => {
+    expect(horizonDeg(2.4)).toBeCloseTo(72.9, 0);
+    expect(horizonDeg(0.5)).toBeLessThan(horizonDeg(2.4));
+  });
+
+  it("unwrapRing still lives behind the old import path", async () => {
+    const mod = await import("../scene/Ink/landMask");
+    expect(mod.unwrapRing).toBe(unwrapRing);
   });
 });

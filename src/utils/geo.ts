@@ -85,3 +85,38 @@ export function altitudeToLevel(altitude: number): SpatialLevel {
 
 /** 约 6371 km 地球半径，用于把场景单位高度展示为公里。 */
 export const EARTH_RADIUS_KM = 6371;
+
+/** 经度展开为连续值：相邻点差超过 180° 时加减 360°（跨日界线的环不再横穿地图）。 */
+export function unwrapRing(ring: LonLat[]): LonLat[] {
+  if (!ring.length) return [];
+  const out: LonLat[] = [[ring[0]![0], ring[0]![1]]];
+  let offset = 0;
+  for (let i = 1; i < ring.length; i++) {
+    const d = ring[i]![0] - ring[i - 1]![0];
+    if (d > 180) offset -= 360;
+    else if (d < -180) offset += 360;
+    out.push([ring[i]![0] + offset, ring[i]![1]]);
+  }
+  return out;
+}
+
+/** 两点间的大圆角距离（度）。 */
+export function angularDistanceDeg(a: LonLat, b: LonLat): number {
+  const c = Math.sin(a[1] * DEG) * Math.sin(b[1] * DEG) + Math.cos(a[1] * DEG) * Math.cos(b[1] * DEG) * Math.cos((a[0] - b[0]) * DEG);
+  return Math.acos(Math.min(1, Math.max(-1, c))) / DEG;
+}
+
+/** 从 c 出发沿方位角 bearing（弧度，0 = 北，π/2 = 东）走 distDeg 度后的位置。 */
+export function offsetLonLat(c: LonLat, bearing: number, distDeg: number): LonLat {
+  if (distDeg === 0) return [c[0], c[1]];
+  const p1 = c[1] * DEG;
+  const d = distDeg * DEG;
+  const p2 = Math.asin(Math.sin(p1) * Math.cos(d) + Math.cos(p1) * Math.sin(d) * Math.cos(bearing));
+  const l2 = c[0] * DEG + Math.atan2(Math.sin(bearing) * Math.sin(d) * Math.cos(p1), Math.cos(d) - Math.sin(p1) * Math.sin(p2));
+  return [((((l2 / DEG + 180) % 360) + 360) % 360) - 180, p2 / DEG];
+}
+
+/** 相机高度（地球半径）为 altitude 时，视野中心到地平线的角距离（度）。 */
+export function horizonDeg(altitude: number): number {
+  return Math.acos(1 / (1 + Math.max(0, altitude))) / DEG;
+}
