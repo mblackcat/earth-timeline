@@ -26,3 +26,14 @@ export function abundanceTier(records: number, source: keyof typeof TIER_THRESHO
 export function globeModelPx(sizeM: number): number {
   return Math.min(48, Math.max(14, 25 * Math.max(0, sizeM) ** 0.21));
 }
+
+/**
+ * 生物群的屏幕尺寸：远景（高度 ≥ 1.2）把 globeModelPx 的 14–48 px 线性压到 6–12 px，
+ * 高度 1.2 → 0.6 之间线性恢复到 globeModelPx。保留大小关系。
+ */
+export function herdModelPx(sizeM: number, altitude: number): number {
+  const full = globeModelPx(sizeM);
+  const far = 6 + ((full - 14) / 34) * 6;
+  const k = Math.min(1, Math.max(0, (1.2 - altitude) / 0.6));
+  return far + (full - far) * k;
+}

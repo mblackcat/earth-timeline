@@ -1,4 +1,4 @@
-import { abundanceTier, globeModelPx } from "./abundance";
+import { abundanceTier, globeModelPx, herdModelPx } from "./abundance";
 
 describe("abundanceTier", () => {
   it("buckets record counts by order of magnitude", () => {
@@ -37,5 +37,17 @@ describe("globeModelPx", () => {
       expect(px).toBeGreaterThanOrEqual(prev);
       prev = px;
     }
+  });
+});
+
+describe("herdModelPx", () => {
+  it("is 6–12 px in the far view and the full globe size from altitude 0.6 down", () => {
+    expect(herdModelPx(0.06, 2.4)).toBeCloseTo(6);
+    expect(herdModelPx(25, 2.4)).toBeCloseTo(12);
+    expect(herdModelPx(2, 0.6)).toBeCloseTo(globeModelPx(2));
+    expect(herdModelPx(2, 0.3)).toBeCloseTo(globeModelPx(2));
+    const mid = herdModelPx(2, 0.9);
+    expect(mid).toBeGreaterThan(herdModelPx(2, 1.2));
+    expect(mid).toBeLessThan(globeModelPx(2));
   });
 });
