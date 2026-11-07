@@ -17,6 +17,18 @@ function run(agents: HerdAgent[], seconds: number, enabled = true, seed = 1, eac
   }
 }
 
+describe("createHerdAgent", () => {
+  it("accepts an initial heading and offset without changing the other fields", () => {
+    const t = T({});
+    const base = createHerdAgent("k", t, [10, 20], "x#0", seededRandom(5));
+    const init = createHerdAgent("k", t, [10, 20], "x#0", seededRandom(5), { heading: 1.25, offset: [0, 0] });
+    expect(init).toMatchObject({ heading: 1.25, e: 0, n: 0 });
+    expect(agentLonLat(init)).toEqual([10, 20]);
+    expect({ ...init, heading: base.heading, e: base.e, n: base.n }).toEqual(base);
+    expect(createHerdAgent("k", t, [10, 20], "x#0", seededRandom(5), {})).toEqual(base);
+  });
+});
+
 describe("canPrey", () => {
   const pred = T({ speciesId: "allo", diet: "carnivore", sizeM: 9 });
   it("pairs a carnivore with a plausibly sized animal in the same habitat", () => {

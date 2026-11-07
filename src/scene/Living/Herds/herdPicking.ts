@@ -18,10 +18,20 @@ export function projectIndividual(p: PlacedIndividual, camera: Camera, rect: DOM
   return { x: rect.left + ((v.x + 1) / 2) * rect.width, y: rect.top + ((1 - v.y) / 2) * rect.height - px / 2, r: Math.max(8, px / 2 + 4) };
 }
 
-export function pickIndividual(x: number, y: number, camera: Camera, rect: DOMRect, altitude: number, placed: Iterable<PlacedIndividual>): PlacedIndividual | null {
+/** 屏幕上离 (x, y) 最近、在点选半径内的个体；skip 中的键（已升为完整档、实例档中隐藏）跳过。 */
+export function pickIndividual(
+  x: number,
+  y: number,
+  camera: Camera,
+  rect: DOMRect,
+  altitude: number,
+  placed: Iterable<PlacedIndividual>,
+  skip?: ReadonlySet<string>,
+): PlacedIndividual | null {
   let best: PlacedIndividual | null = null;
   let bestD = Infinity;
   for (const p of placed) {
+    if (skip?.has(p.key)) continue;
     const s = projectIndividual(p, camera, rect, altitude);
     if (!s) continue;
     const d = Math.hypot(s.x - x, s.y - y);

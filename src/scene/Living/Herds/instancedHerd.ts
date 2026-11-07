@@ -26,6 +26,17 @@ export function createHerdUniforms(extent: number, motion: number): HerdUniforms
   return { uPx: { value: 12 }, uExtent: { value: extent }, uMotion: { value: motion } };
 }
 
+/**
+ * 实例网格容量：够用时保持不变（成员减少不重建）；不够时取 ≥ n 的最小 2 的幂（至少 16），
+ * 成员变化时只写入已有缓冲，容量翻倍时才重建网格。
+ */
+export function herdCapacity(current: number, n: number): number {
+  if (n <= current) return current;
+  let c = 16;
+  while (c < n) c *= 2;
+  return c;
+}
+
 /** 0 植物 / 固着：弯曲摇摆；1 陆生：起伏 + 转头；2 游泳：摆尾；3 飞行：上下浮动。 */
 export function motionKind(asset: VisualizationAsset): number {
   switch (asset.locomotion) {

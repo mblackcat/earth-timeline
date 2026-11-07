@@ -36,6 +36,13 @@ export interface HerdSpeciesInput {
   perSite: number;
   radiusDeg: number;
   need: HabitatNeed;
+  /** 点列表来源（默认化石点）：写进个体键，GBIF 点与化石点的同一下标不会撞键。不影响散布种子。 */
+  source?: "fossil" | "gbif";
+}
+
+/** 个体键：物种 + 来源标记（f = 化石点，g = GBIF 点）与点下标 + 序号。 */
+export function herdKey(speciesId: string, source: HerdSpeciesInput["source"], siteIndex: number, k: number): string {
+  return `${speciesId}#${source === "gbif" ? "g" : "f"}${siteIndex}#${k}`;
 }
 
 export interface HerdIndividual {
@@ -71,7 +78,7 @@ function scatterSite(s: HerdSpeciesInput, i: number, grid: LandGrid | null, coun
     }
     const heading = rand() * Math.PI * 2;
     const phase = rand() * 10;
-    if (ok) out.push({ key: `${s.speciesId}#${siteIndex}#${k}`, speciesId: s.speciesId, siteIndex, k, bearing, distDeg, heading, phase });
+    if (ok) out.push({ key: herdKey(s.speciesId, s.source, siteIndex, k), speciesId: s.speciesId, siteIndex, k, bearing, distDeg, heading, phase });
   }
   return out;
 }

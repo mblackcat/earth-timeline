@@ -10,6 +10,8 @@ export interface PlacedIndividual {
   mobile: boolean;
   /** 成群分组：物种 + 点位。 */
   siteGroup: string;
+  /** 实例档中的朝向（弧度，0 = 北）：升档时完整档沿用。 */
+  heading: number;
 }
 
 /**

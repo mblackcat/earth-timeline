@@ -47,15 +47,24 @@ export interface HerdAgent {
   slotN: number;
 }
 
-export function createHerdAgent(key: string, traits: HerdTraits, home: LonLat, group: string, rand: () => number): HerdAgent {
+export interface HerdAgentInit {
+  /** 初始朝向（弧度）；缺省随机。 */
+  heading?: number;
+  /** 初始相对家的偏移（度，向东 / 向北）；缺省在漫游半径一半内随机。 */
+  offset?: [number, number];
+}
+
+/** init 只覆盖对应字段，随机数的消耗顺序不变（其余字段与不传 init 时相同）。 */
+export function createHerdAgent(key: string, traits: HerdTraits, home: LonLat, group: string, rand: () => number, init: HerdAgentInit = {}): HerdAgent {
   const r = WANDER_RADIUS_DEG[traits.locomotion];
   const a = rand() * Math.PI * 2;
   const d = Math.sqrt(rand()) * r * 0.5;
+  const heading = rand() * Math.PI * 2;
   return {
     key, traits, home, group,
-    e: Math.cos(a) * d,
-    n: Math.sin(a) * d,
-    heading: rand() * Math.PI * 2,
+    e: init.offset ? init.offset[0] : Math.cos(a) * d,
+    n: init.offset ? init.offset[1] : Math.sin(a) * d,
+    heading: init.heading ?? heading,
     state: "idle",
     timer: 1 + rand() * 3,
     targetE: 0,

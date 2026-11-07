@@ -1,12 +1,24 @@
 import { ShaderLib, type Material, type WebGLProgramParametersWithUniforms } from "three";
 import { VISUAL_BY_ID } from "../../../data/visuals";
-import { createHerdOutlineMaterial, createHerdToneMaterial, createHerdUniforms, HERD_SHARED, motionKind } from "./instancedHerd";
+import { createHerdOutlineMaterial, createHerdToneMaterial, createHerdUniforms, HERD_SHARED, herdCapacity, motionKind } from "./instancedHerd";
 
 function compile(mat: Material, lib: "lambert" | "basic") {
   const shader = { vertexShader: ShaderLib[lib].vertexShader, fragmentShader: ShaderLib[lib].fragmentShader, uniforms: {} } as unknown as WebGLProgramParametersWithUniforms;
   mat.onBeforeCompile(shader, undefined as never);
   return shader;
 }
+
+describe("herdCapacity", () => {
+  it("starts at the next power of two (min 16), keeps capacity when shrinking, doubles when exceeded", () => {
+    expect(herdCapacity(0, 1)).toBe(16);
+    expect(herdCapacity(0, 16)).toBe(16);
+    expect(herdCapacity(0, 17)).toBe(32);
+    expect(herdCapacity(0, 300)).toBe(512);
+    expect(herdCapacity(64, 20)).toBe(64);
+    expect(herdCapacity(64, 64)).toBe(64);
+    expect(herdCapacity(64, 65)).toBe(128);
+  });
+});
 
 describe("instanced herd materials", () => {
   it("motion kinds by locomotion", () => {

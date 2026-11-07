@@ -1,5 +1,5 @@
 import { useFrame, useThree } from "@react-three/fiber";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { InstancedBufferAttribute, InstancedMesh, Matrix4, Quaternion, Vector3, type Group, type Material } from "three";
 import type { LonLat, PaleoPointsFile, VisualizationAsset } from "../../../data/schema";
 import { SPECIES_BY_ID } from "../../../data/species";
@@ -28,7 +28,7 @@ import { useAnimationClock } from "../../Models/animationClock";
 import { bakeSpecies } from "./bakeSpecies";
 import { pickIndividual, projectIndividual, SURFACE_R } from "./herdPicking";
 import { herdRuntime } from "./herdRuntime";
-import { createHerdOutlineMaterial, createHerdToneMaterial, createHerdUniforms, HERD_SHARED, motionKind, type HerdUniforms } from "./instancedHerd";
+import { createHerdOutlineMaterial, createHerdToneMaterial, createHerdUniforms, HERD_SHARED, herdCapacity, motionKind, type HerdUniforms } from "./instancedHerd";
 import { surfaceQuaternion } from "./surfaceFrame";
 
 /**
@@ -91,16 +91,23 @@ function tickHerd(
   if (s.meshes !== meshes) {
     // 在这里而非 useMemo 中绑定：开发模式 StrictMode 会把 useMemo 跑两遍并丢弃第二次的结果，
     // 若在 useMemo 里 setAttribute，几何体上留下的会是被丢弃那份的属性
-    meshes.fill.geometry.setAttribute("aHerd", meshes.attr);
+    const geo = meshes.fill.geometry;
+    const prev = geo.getAttribute("aHerd");
+    // 容量增长换了新属性：先释放几何体的 GPU 缓冲（含旧 aHerd），下次渲染时按当前属性重新上传
+    if (prev && prev !== meshes.attr) geo.dispose();
+    geo.setAttribute("aHerd", meshes.attr);
     s.meshes = meshes;
     s.fKey = "";
-    s.version = -1;
+    s.members = null; // 新网格：重写数量、相位、全部矩阵与升档标记
   }
   if (fKey !== s.fKey || s.members !== h.members) {
     if (s.members !== h.members) {
       const next = new Set(h.members.map((m) => m.key));
       for (const k of prevKeys.current) if (!next.has(k)) herdRuntime.placed.delete(k);
       prevKeys.current = next;
+      meshes.fill.count = h.members.length;
+      if (meshes.outline) meshes.outline.count = h.members.length;
+      h.members.forEach((m, i) => meshes.attr.setX(i, m.phase));
       s.version = -1;
     }
     const pf = currentPaleoFrame();
@@ -120,6 +127,7 @@ function tickHerd(
         sizeM: h.asset.sizeM,
         mobile: h.asset.locomotion !== "none",
         siteGroup: `${m.speciesId}#${m.siteIndex}`,
+        heading: m.heading,
       });
     });
     meshes.fill.instanceMatrix.needsUpdate = true;
@@ -138,23 +146,28 @@ function HerdSpecies({ h, paleo, style }: { h: SpeciesHerd; paleo: PaleoPointsFi
   const baked = useMemo(() => bakeSpecies(h.asset, style), [h.asset, style]);
   useEffect(() => () => baked.dispose(), [baked]);
   const uniforms = useMemo(() => createHerdUniforms(baked.extent, motionKind(h.asset)), [baked, h.asset]);
+  // 容量只在成员数超过时翻倍（渲染期间调整 state）；成员变化本身只写入已有缓冲（见 tickHerd）
+  const [capacity, setCapacity] = useState(() => herdCapacity(0, h.members.length));
+  const need = herdCapacity(capacity, h.members.length);
+  if (need !== capacity) setCapacity(need);
   const meshes = useMemo<HerdMeshes>(() => {
-    const n = h.members.length;
-    const attr = new InstancedBufferAttribute(new Float32Array(n * 2), 2);
-    h.members.forEach((m, i) => attr.setXY(i, m.phase, 1));
-    const fill = new InstancedMesh(baked.fill, createHerdToneMaterial(style, uniforms), n);
-    const outline = baked.outline ? new InstancedMesh(baked.fill, createHerdOutlineMaterial(uniforms), n) : null;
+    const attr = new InstancedBufferAttribute(new Float32Array(capacity * 2), 2);
+    const fill = new InstancedMesh(baked.fill, createHerdToneMaterial(style, uniforms), capacity);
+    const outline = baked.outline ? new InstancedMesh(baked.fill, createHerdOutlineMaterial(uniforms), capacity) : null;
     for (const m of [fill, outline]) {
       if (!m) continue;
+      m.count = 0; // 首帧由 tickHerd 设为成员数
       m.frustumCulled = false; // 实际尺寸在着色器里决定，包围球不可信
       m.raycast = () => {}; // 点选走屏幕空间（herdPicking）
     }
     return { fill, outline, attr };
-  }, [baked, uniforms, h.members, style]);
+  }, [baked, uniforms, style, capacity]);
   useEffect(
     () => () => {
       (meshes.fill.material as Material).dispose();
       (meshes.outline?.material as Material | undefined)?.dispose();
+      meshes.fill.dispose(); // 释放 instanceMatrix 的 GPU 缓冲
+      meshes.outline?.dispose();
     },
     [meshes],
   );
@@ -195,21 +208,31 @@ function useHerdPicking() {
   useEffect(() => {
     const dom = gl.domElement;
     let down: { x: number; y: number } | null = null;
+    // 只认主指针的主键（左键 / 单指）
+    const primary = (e: PointerEvent) => e.isPrimary && e.button === 0;
     const onDown = (e: PointerEvent) => {
-      down = { x: e.clientX, y: e.clientY };
+      down = primary(e) ? { x: e.clientX, y: e.clientY } : null;
     };
     const onUp = (e: PointerEvent) => {
+      if (!primary(e)) return;
       const d = down;
       down = null;
       if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 4) return;
-      const hit = pickIndividual(e.clientX, e.clientY, camera, dom.getBoundingClientRect(), useViewStore.getState().altitude, herdRuntime.placed.values());
+      const alt = useViewStore.getState().altitude;
+      // 已升为完整档的个体在实例档中隐藏，不参与点选（完整档自己处理点击）
+      const hit = pickIndividual(e.clientX, e.clientY, camera, dom.getBoundingClientRect(), alt, herdRuntime.placed.values(), herdRuntime.promoted);
       if (hit) selectSpecies(hit.speciesId);
+    };
+    const onCancel = () => {
+      down = null;
     };
     dom.addEventListener("pointerdown", onDown);
     dom.addEventListener("pointerup", onUp);
+    dom.addEventListener("pointercancel", onCancel);
     return () => {
       dom.removeEventListener("pointerdown", onDown);
       dom.removeEventListener("pointerup", onUp);
+      dom.removeEventListener("pointercancel", onCancel);
     };
   }, [gl, camera, selectSpecies]);
 }
@@ -338,6 +361,7 @@ export function Herds() {
         perSite: individualsPerSite(tier, asset.locomotion === "none", continental),
         radiusDeg: scatterRadiusDeg(tier),
         need: placementNeed(s.habitatIds),
+        source: living ? "gbif" : "fossil",
       });
     }
     const all = buildHerd(inputs, { center: [lon, lat], altitude }, lowPerformance ? CAP / 2 : CAP, grid);

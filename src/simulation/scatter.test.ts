@@ -1,7 +1,7 @@
 import type { LonLat } from "../data/schema";
 import { seededRandom } from "./BehaviorSystem";
 import { isLandAt, type LandGrid } from "./landGrid";
-import { buildHerd, individualsPerSite, scatterRadiusDeg, type HerdSpeciesInput } from "./scatter";
+import { buildHerd, herdKey, individualsPerSite, scatterRadiusDeg, type HerdSpeciesInput } from "./scatter";
 import { offsetLonLat } from "../utils/geo";
 
 const sp = (o: Partial<HerdSpeciesInput>): HerdSpeciesInput => ({ speciesId: "a", sites: [[0, 0]], siteIndex: [0], perSite: 1, radiusDeg: 0.3, need: "any", ...o });
@@ -30,6 +30,18 @@ describe("herd scatter", () => {
     for (const m of a) expect(m.distDeg).toBeLessThanOrEqual(1.2);
     expect(new Set(a.map((m) => m.key)).size).toBe(8);
     expect(buildHerd(input, VIEW, 2000, null)).toEqual(a);
+  });
+
+  it("keys carry the site source (fossil by default, GBIF tagged) without moving the scatter", () => {
+    expect(herdKey("a", undefined, 3, 1)).toBe("a#f3#1");
+    expect(herdKey("a", "fossil", 3, 1)).toBe("a#f3#1");
+    expect(herdKey("a", "gbif", 3, 1)).toBe("a#g3#1");
+    const input = sp({ perSite: 4, radiusDeg: 0.9 });
+    const fossil = buildHerd([input], VIEW, 2000, null);
+    const gbif = buildHerd([{ ...input, source: "gbif" }], VIEW, 2000, null);
+    expect(fossil.map((m) => m.key)).toEqual(["a#f0#0", "a#f0#1", "a#f0#2", "a#f0#3"]);
+    expect(gbif.map((m) => m.key)).toEqual(["a#g0#0", "a#g0#1", "a#g0#2", "a#g0#3"]);
+    expect(gbif.map((m) => ({ ...m, key: "" }))).toEqual(fossil.map((m) => ({ ...m, key: "" })));
   });
 
   it("adding individuals (zooming in) keeps the existing ones in place", () => {

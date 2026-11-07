@@ -12,7 +12,7 @@ function camera() {
   c.updateMatrixWorld();
   return c;
 }
-const placed = (key: string, lonLat: [number, number]): PlacedIndividual => ({ key, speciesId: key, lonLat, sizeM: 2, mobile: true, siteGroup: `${key}#0` });
+const placed = (key: string, lonLat: [number, number]): PlacedIndividual => ({ key, speciesId: key, lonLat, sizeM: 2, mobile: true, siteGroup: `${key}#0`, heading: 0 });
 
 describe("herd picking", () => {
   it("projects front-side individuals to the screen and hides the far side", () => {
@@ -29,6 +29,15 @@ describe("herd picking", () => {
     const a = projectIndividual(list[0]!, c, RECT, 2.4)!;
     expect(pickIndividual(a.x + 2, a.y, c, RECT, 2.4, list)?.key).toBe("a");
     expect(pickIndividual(a.x + 200, a.y + 200, c, RECT, 2.4, list)).toBeNull();
+  });
+
+  it("skips promoted individuals (hidden on the instance tier)", () => {
+    const c = camera();
+    const list = [placed("a", [0, 0]), placed("b", [0.5, 0])];
+    const a = projectIndividual(list[0]!, c, RECT, 2.4)!;
+    expect(pickIndividual(a.x, a.y, c, RECT, 2.4, list)?.key).toBe("a");
+    expect(pickIndividual(a.x, a.y, c, RECT, 2.4, list, new Set(["a"]))?.key).toBe("b");
+    expect(pickIndividual(a.x, a.y, c, RECT, 2.4, list, new Set(["a", "b"]))).toBeNull();
   });
 });
 
@@ -47,6 +56,23 @@ describe("RigPool", () => {
     const c = pool.acquire(v, 1, "tone");
     pool.release(c, v, 1, "tone"); // 池已释放：直接 dispose，不抛错
     expect(pool.size).toBe(0);
+  });
+
+  it("prunes free lists of other lod / style combinations", () => {
+    const pool = new RigPool();
+    const v = VISUAL_BY_ID["viz-allosaurus"]!;
+    const tone = pool.acquire(v, 1, "tone");
+    const line = pool.acquire(v, 1, "line");
+    const hi = pool.acquire(v, 0, "tone");
+    const spies = [tone, line, hi].map((r) => vi.spyOn(r, "dispose"));
+    pool.release(tone, v, 1, "tone");
+    pool.release(line, v, 1, "line");
+    pool.release(hi, v, 0, "tone");
+    pool.prune((lod, style) => lod === 1 && style === "tone");
+    expect(pool.size).toBe(1);
+    expect(spies.map((s) => s.mock.calls.length)).toEqual([0, 1, 1]);
+    expect(pool.acquire(v, 1, "tone")).toBe(tone);
+    pool.dispose();
   });
 
   it("reclaims a released rig and reopens after dispose (StrictMode remount)", () => {

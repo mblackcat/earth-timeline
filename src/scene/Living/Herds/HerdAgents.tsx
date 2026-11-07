@@ -71,7 +71,8 @@ function syncEntries(map: Map<string, Entry>, sorted: string[], low: boolean, ra
     const sp = p && SPECIES_BY_ID[p.speciesId];
     const asset = sp?.visualizationId ? VISUAL_BY_ID[sp.visualizationId] : undefined;
     if (!p || !sp || !asset) continue;
-    const agent = createHerdAgent(k, traitsFor(sp, asset, clipsFor(asset.archetype)), p.lonLat, p.siteGroup, rand);
+    // 从实例所在位置、沿用实例朝向开始，升档时不跳变
+    const agent = createHerdAgent(k, traitsFor(sp, asset, clipsFor(asset.archetype)), p.lonLat, p.siteGroup, rand, { heading: p.heading, offset: [0, 0] });
     map.set(k, { key: k, agent, asset, appear: 0, leaving: false });
     herdRuntime.promoted.add(k);
     added = true;
@@ -80,13 +81,26 @@ function syncEntries(map: Map<string, Entry>, sorted: string[], low: boolean, ra
   return added;
 }
 
-/** 每帧：升 / 降档、行为步进、过渡推进；返回条目集合是否变化。 */
-function tickAgents(map: Map<string, Entry>, recheck: { current: number }, dt: number, clock: number, rand: () => number): boolean {
+interface AgentsTick {
+  /** 距下次重选升档的秒数（真实时间）。 */
+  recheck: number;
+  /** 上一帧的动画时钟。 */
+  lastClock: number | null;
+}
+
+/**
+ * 每帧：升 / 降档、行为步进、过渡推进；返回条目集合是否变化。
+ * 行为按动画时钟的增量步进：时钟冻结（关闭动画，或暂停且不继续 Idle）时个体不移动；
+ * 重选与出现 / 消失过渡仍按真实时间。
+ */
+function tickAgents(map: Map<string, Entry>, st: AgentsTick, dt: number, clock: number, rand: () => number): boolean {
   const s = useSettingsStore.getState();
   let changed = false;
-  recheck.current -= dt;
-  if (recheck.current <= 0) {
-    recheck.current = RECHECK_S;
+  const simDt = Math.max(0, clock - (st.lastClock ?? clock));
+  st.lastClock = clock;
+  st.recheck -= dt;
+  if (st.recheck <= 0) {
+    st.recheck = RECHECK_S;
     changed = syncEntries(map, promotionCandidates(), s.lowPerformance, rand);
   }
   const list: HerdAgent[] = [];
@@ -103,7 +117,7 @@ function tickAgents(map: Map<string, Entry>, recheck: { current: number }, dt: n
     e.agent.home = p.lonLat;
     list.push(e.agent);
   }
-  stepHerd(list, dt, clock, s.animationsEnabled && s.behaviorEnabled, rand);
+  stepHerd(list, simDt, clock, s.animationsEnabled && s.behaviorEnabled, rand);
   for (const [k, e] of map) {
     e.appear += (e.leaving ? -dt : dt) / APPEAR_S;
     if (e.leaving && e.appear <= 0) {
@@ -169,7 +183,8 @@ function HerdCreature({ entry, pool, lod, style, animT }: { entry: Entry; pool: 
   });
 
   const onClick = (e: ThreeEvent<MouseEvent>) => {
-    if (e.delta > 4) return;
+    // 背面隐藏或仍在出现 / 消失过渡中的个体不响应点击
+    if (e.delta > 4 || !ref.current?.visible || entry.appear < 0.2) return;
     e.stopPropagation();
     selectSpecies(entry.agent.traits.speciesId);
   };
@@ -193,7 +208,9 @@ export function HerdAgents() {
   const [list, setList] = useState<Entry[]>([]);
   const rand = useMemo(() => seededRandom(7), []);
   const animT = useAnimationClock();
-  const recheck = useRef(0);
+  const tick = useRef<AgentsTick>({ recheck: 0, lastClock: null });
+  // 切换风格 / 细节后，旧组合的空闲 rig 不会再被取用（在子组件释放旧 rig 之后运行）
+  useEffect(() => pool.prune((l, s) => l === lod && s === style), [pool, lod, style]);
 
   useEffect(() => {
     const map = entries.current;
@@ -209,7 +226,7 @@ export function HerdAgents() {
   }, []);
 
   useFrame((_, dt) => {
-    if (tickAgents(entries.current, recheck, dt, animT.current, rand)) setList([...entries.current.values()]);
+    if (tickAgents(entries.current, tick.current, dt, animT.current, rand)) setList([...entries.current.values()]);
   });
 
   return (
