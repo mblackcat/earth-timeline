@@ -99,6 +99,82 @@ describe("stepHerd", () => {
     expect(groupTarget("g#1", 3, 0.15)).not.toEqual(groupTarget("g#2", 3, 0.15));
   });
 
+  it("no teleport after a chase: per-step displacement stays within wander speed bounds", () => {
+    const pred = agent("p", T({ speciesId: "allo", diet: "carnivore", sizeM: 9 }));
+    const prey = agent("q", T({ speciesId: "steg", sizeM: 8 }));
+    pred.cooldown = 0;
+    prey.cooldown = 0;
+    const agents = [pred, prey];
+    let chased = false;
+    const prev = agents.map((a) => [a.e, a.n]);
+    let worst = 0;
+    const r = WANDER_RADIUS_DEG.walk;
+    const limit = 1.6 * (r / 6) * 0.1 + 1e-9;
+    run(agents, 120, true, 2, () => {
+      chased ||= pred.state === "chase";
+      agents.forEach((a, i) => {
+        worst = Math.max(worst, Math.hypot(a.e - prev[i]![0]!, a.n - prev[i]![1]!));
+        prev[i] = [a.e, a.n];
+      });
+    });
+    expect(chased).toBe(true);
+    expect(worst).toBeLessThanOrEqual(limit);
+  });
+
+  it("chase range follows the predator's reach (a flier pairs farther than a crawler)", () => {
+    const mk = (loc: "crawl" | "fly") => {
+      const pred = agent("p", T({ speciesId: "allo", diet: "carnivore", sizeM: 9, locomotion: loc }), [0, 0]);
+      const prey = agent("q", T({ speciesId: "steg", sizeM: 8 }), [0.5, 0]);
+      pred.e = pred.n = prey.e = prey.n = 0;
+      pred.cooldown = prey.cooldown = 0;
+      let chased = false;
+      run([pred, prey], 30, true, 5, () => (chased ||= pred.state === "chase"));
+      return chased;
+    };
+    expect(mk("crawl")).toBe(false); // 爬行者触及 0.1°，猎物在 0.5° 外
+    expect(mk("fly")).toBe(true);
+  });
+
+  it("herd wander targets stay within the leash", () => {
+    const a = agent("h", T({ herds: true }));
+    a.state = "idle";
+    a.timer = 0;
+    a.cooldown = 99;
+    const r = WANDER_RADIUS_DEG.walk;
+    let max = 0;
+    run([a], 200, true, 6, () => (max = Math.max(max, Math.hypot(a.targetE, a.targetN))));
+    expect(max).toBeLessThanOrEqual(r * 1.01);
+  });
+
+  it("removing the prey mid-chase ends the predator's chase", () => {
+    const pred = agent("p", T({ speciesId: "allo", diet: "carnivore", sizeM: 9 }));
+    const prey = agent("q", T({ speciesId: "steg", sizeM: 8 }));
+    pred.cooldown = 0;
+    prey.cooldown = 0;
+    const agents = [pred, prey];
+    const r = seededRandom(2);
+    let t = 0;
+    while (pred.state !== "chase" && t < 80) stepHerd(agents, 0.1, (t += 0.1), true, r);
+    expect(pred.state).toBe("chase");
+    agents.splice(1, 1);
+    stepHerd(agents, 0.1, t + 0.1, true, r);
+    expect(pred.state).not.toBe("chase");
+    expect(pred.partner).toBeNull();
+  });
+
+  it("agentLonLat wraps longitude and heading stays normalized", () => {
+    const a = agent("w", T({}), [179.9, 0]);
+    a.e = 0.5;
+    expect(agentLonLat(a)[0]).toBeCloseTo(-179.6);
+    const b = agent("b", T({}));
+    b.state = "wander";
+    b.timer = 5;
+    b.targetE = -0.1;
+    b.targetN = -0.1;
+    b.heading = 3.1;
+    run([b], 20, true, 1, () => expect(Math.abs(b.heading)).toBeLessThanOrEqual(Math.PI + 1e-9));
+  });
+
   it("agentLonLat converts local offsets (degrees east / north) around home", () => {
     const a = agent("a", T({}), [10, 60]);
     a.e = 0.5;

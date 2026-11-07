@@ -13,7 +13,8 @@ export type HerdState = "idle" | "wander" | "eat" | "sleep" | "chase" | "flee";
 
 export const WANDER_RADIUS_DEG: Record<VisualizationAsset["locomotion"], number> = { none: 0, crawl: 0.05, walk: 0.15, swim: 0.2, fly: 0.35 };
 export const MAX_CHASES = 8;
-const CHASE_RANGE_DEG = 1;
+/** 配对范围随捕食者的活动半径变化（上限 1°），爬行者不会"隔空"追逐。 */
+const chaseRangeDeg = (pred: HerdTraits) => Math.min(1, 2 * WANDER_RADIUS_DEG[pred.locomotion]);
 const CHASE_ESCAPE_DEG = 1.5;
 /** 每只空闲的捕食者每秒尝试发起追逐的概率。 */
 const CHASE_RATE = 0.2;
@@ -70,7 +71,7 @@ export function createHerdAgent(key: string, traits: HerdTraits, home: LonLat, g
 
 export function agentLonLat(a: HerdAgent): LonLat {
   const c = Math.max(0.05, Math.cos(a.home[1] * D));
-  return [a.home[0] + a.e / c, Math.max(-89.9, Math.min(89.9, a.home[1] + a.n))];
+  return [((((a.home[0] + a.e / c + 180) % 360) + 360) % 360) - 180, Math.max(-89.9, Math.min(89.9, a.home[1] + a.n))];
 }
 
 /** a → b 的相对位置（a 处的局部度，向东 / 向北）。 */
@@ -110,7 +111,7 @@ const busy = (a: HerdAgent) => a.state === "chase" || a.state === "flee";
 function pickWander(a: HerdAgent, clock: number, rand: () => number) {
   const r = WANDER_RADIUS_DEG[a.traits.locomotion];
   if (a.traits.herds) {
-    const [e, n] = groupTarget(a.group, clock, r);
+    const [e, n] = groupTarget(a.group, clock, 0.8 * r);
     a.targetE = e + a.slotE;
     a.targetN = n + a.slotN;
     return;
@@ -125,6 +126,7 @@ function steer(a: HerdAgent, de: number, dn: number, speed: number, dt: number, 
   let d = Math.atan2(de, dn) - a.heading;
   d = Math.atan2(Math.sin(d), Math.cos(d));
   a.heading += Math.max(-turn * dt, Math.min(turn * dt, d));
+  a.heading = Math.atan2(Math.sin(a.heading), Math.cos(a.heading));
   const step = speed * dt;
   a.e += Math.sin(a.heading) * step;
   a.n += Math.cos(a.heading) * step;
@@ -151,9 +153,10 @@ function startChases(agents: HerdAgent[], dt: number, rand: () => number) {
   for (const pred of agents) {
     if (active >= MAX_CHASES) return;
     if (busy(pred) || pred.state === "sleep" || pred.cooldown > 0) continue;
+    if ((pred.traits.diet !== "carnivore" && pred.traits.diet !== "omnivore") || pred.traits.hominin || pred.traits.locomotion === "none") continue;
     if (rand() >= dt * CHASE_RATE) continue;
     let best: HerdAgent | null = null;
-    let bestD = CHASE_RANGE_DEG;
+    let bestD = chaseRangeDeg(pred.traits);
     for (const prey of agents) {
       if (prey === pred || busy(prey) || prey.cooldown > 0 || !canPrey(pred.traits, prey.traits)) continue;
       const [de, dn] = delta(pred, prey);
@@ -211,8 +214,10 @@ function stepOne(a: HerdAgent, dt: number, clock: number, rand: () => number, by
       }
       return;
     }
+    // 追逐后可能在 3r 以内：围栏只随走回而收紧，不会瞬移
+    const before = Math.hypot(a.e, a.n);
     steer(a, de, dn, v, dt, 2);
-    clampHome(a, r);
+    clampHome(a, Math.max(r, before));
     return;
   }
   if (a.timer > 0) return;

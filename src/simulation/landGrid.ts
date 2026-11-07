@@ -27,7 +27,17 @@ export function landGridFromOutlines(outlines: LonLat[][], resDeg = 1): LandGrid
       const pole = Math.abs(minLat) >= Math.abs(maxLat) ? -90 : 90;
       closed = [...ring, [last[0], pole], [first[0], pole]];
     }
-    for (const off of [0, -360, 360]) polys.push([closed.map(([lon, lat]) => [lon + off, lat] as LonLat)]);
+    let minLon = Infinity;
+    let maxLon = -Infinity;
+    for (const p of closed) {
+      if (p[0] < minLon) minLon = p[0];
+      if (p[0] > maxLon) maxLon = p[0];
+    }
+    // 只栅格化与地图 [-180, 180] 有重叠的平移副本
+    for (const off of [0, -360, 360]) {
+      if (maxLon + off < -180 || minLon + off > 180) continue;
+      polys.push([closed.map(([lon, lat]) => [lon + off, lat] as LonLat)]);
+    }
   }
   return rasterizePolygons(polys, resDeg);
 }

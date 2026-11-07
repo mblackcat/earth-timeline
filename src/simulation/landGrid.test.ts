@@ -24,4 +24,22 @@ describe("land grid from coastlines", () => {
     expect(isLandAt(g, [0, -85])).toBe(true);
     expect(isLandAt(g, [0, -60])).toBe(false);
   });
+
+  it("rasterizes a huge ring quickly and correctly", () => {
+    const ring: LonLat[] = Array.from({ length: 40000 }, (_, i) => {
+      const a = (i / 40000) * Math.PI * 2;
+      return [60 * Math.cos(a), 60 * Math.sin(a)] as LonLat;
+    });
+    // 取 3 次最快的一次，避免首次 JIT / 并行负载导致偶发超时
+    let best = Infinity;
+    let g = landGridFromOutlines([ring]);
+    for (let k = 0; k < 3; k++) {
+      const t0 = performance.now();
+      g = landGridFromOutlines([ring]);
+      best = Math.min(best, performance.now() - t0);
+    }
+    expect(best).toBeLessThan(60);
+    expect(isLandAt(g, [0, 0])).toBe(true);
+    expect(isLandAt(g, [170, 0])).toBe(false);
+  });
 });

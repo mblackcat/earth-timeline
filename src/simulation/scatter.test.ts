@@ -65,6 +65,15 @@ describe("herd scatter", () => {
     expect(out.some((m) => m.speciesId === "c")).toBe(false);
   });
 
+  it("cap also bounds the per-species first sites", () => {
+    const input = Array.from({ length: 100 }, (_, i) => sp({ speciesId: `s${i}`, perSite: 24 }));
+    const out = buildHerd(input, VIEW, 2000, null);
+    expect(new Set(out.map((m) => m.speciesId)).size).toBe(100);
+    expect(out.length).toBeLessThanOrEqual(2000 + 100);
+    // 超出 cap 的部分只可能是"每物种至少 1 个"的最低保证：最多 2000 + 尚未出现的物种数
+    expect(out.length).toBe(2016);
+  });
+
   it("small camera moves keep most of the selection", () => {
     const r = seededRandom(5);
     const sites: LonLat[] = Array.from({ length: 400 }, () => [(r() - 0.5) * 120, (r() - 0.5) * 120]);

@@ -53,14 +53,14 @@ export interface HerdIndividual {
 
 const fits = (g: LandGrid, p: LonLat, need: HabitatNeed) => need === "any" || isLandAt(g, p) === (need === "land");
 
-function scatterSite(s: HerdSpeciesInput, i: number, grid: LandGrid | null): HerdIndividual[] {
+function scatterSite(s: HerdSpeciesInput, i: number, grid: LandGrid | null, count = s.perSite): HerdIndividual[] {
   const siteIndex = s.siteIndex[i]!;
   const center = s.sites[i]!;
   const rand = seededRandom(hashString(`${s.speciesId}@${siteIndex}`));
   // 点位本身不符合生境（粗分辨率海岸线下常见）时不检查周围个体
   const check = grid !== null && s.need !== "any" && fits(grid, center, s.need);
   const out: HerdIndividual[] = [];
-  for (let k = 0; k < s.perSite; k++) {
+  for (let k = 0; k < count; k++) {
     let bearing = 0;
     let distDeg = 0;
     let ok = k === 0;
@@ -99,7 +99,8 @@ export function buildHerd(species: HerdSpeciesInput[], view: { center: LonLat; a
   }
   rest.sort((a, b) => a.rank - b.rank);
   const out: HerdIndividual[] = [];
-  for (const c of firsts) out.push(...scatterSite(c.s, c.i, grid));
+  // 每个物种至少 1 个个体；首个点的个数也受 cap 约束（截断时保留相同的前几个个体）
+  for (const c of firsts) out.push(...scatterSite(c.s, c.i, grid, Math.max(1, Math.min(c.s.perSite, cap - out.length))));
   for (const c of rest) if (out.length + c.s.perSite <= cap) out.push(...scatterSite(c.s, c.i, grid));
   return out;
 }
