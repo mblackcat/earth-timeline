@@ -48,4 +48,18 @@ describe("RigPool", () => {
     pool.release(c, v, 1, "tone"); // 池已释放：直接 dispose，不抛错
     expect(pool.size).toBe(0);
   });
+
+  it("reclaims a released rig and reopens after dispose (StrictMode remount)", () => {
+    const pool = new RigPool();
+    const v = VISUAL_BY_ID["viz-allosaurus"]!;
+    const a = pool.acquire(v, 1, "tone");
+    pool.release(a, v, 1, "tone");
+    pool.reclaim(a, v, 1, "tone");
+    expect(pool.size).toBe(0);
+    expect(pool.acquire(v, 1, "tone")).not.toBe(a);
+    pool.dispose();
+    pool.reopen();
+    pool.release(a, v, 1, "tone");
+    expect(pool.size).toBe(1);
+  });
 });

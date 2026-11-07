@@ -89,6 +89,9 @@ function tickHerd(
   uniforms.uPx.value = herdModelPx(h.asset.sizeM, useViewStore.getState().altitude);
   const fKey = frameKey();
   if (s.meshes !== meshes) {
+    // 在这里而非 useMemo 中绑定：开发模式 StrictMode 会把 useMemo 跑两遍并丢弃第二次的结果，
+    // 若在 useMemo 里 setAttribute，几何体上留下的会是被丢弃那份的属性
+    meshes.fill.geometry.setAttribute("aHerd", meshes.attr);
     s.meshes = meshes;
     s.fKey = "";
     s.version = -1;
@@ -139,7 +142,6 @@ function HerdSpecies({ h, paleo, style }: { h: SpeciesHerd; paleo: PaleoPointsFi
     const n = h.members.length;
     const attr = new InstancedBufferAttribute(new Float32Array(n * 2), 2);
     h.members.forEach((m, i) => attr.setXY(i, m.phase, 1));
-    baked.fill.setAttribute("aHerd", attr);
     const fill = new InstancedMesh(baked.fill, createHerdToneMaterial(style, uniforms), n);
     const outline = baked.outline ? new InstancedMesh(baked.fill, createHerdOutlineMaterial(uniforms), n) : null;
     for (const m of [fill, outline]) {

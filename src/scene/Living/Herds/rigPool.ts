@@ -34,6 +34,16 @@ export class RigPool {
     this.free.set(k, list);
   }
 
+  /**
+   * 取回刚 release 但仍在使用的 rig（开发模式 StrictMode 会先模拟卸载再重新挂载，
+   * 重放的 effect 用它撤销那次 release，避免同一 rig 被另一个个体复用）。
+   */
+  reclaim(r: Rig, a: VisualizationAsset, lod: Lod, style: Style): void {
+    const list = this.free.get(this.key(a, lod, style));
+    const i = list ? list.indexOf(r) : -1;
+    if (i >= 0) list!.splice(i, 1);
+  }
+
   get size(): number {
     let n = 0;
     for (const l of this.free.values()) n += l.length;
@@ -44,5 +54,10 @@ export class RigPool {
     for (const l of this.free.values()) l.forEach((r) => r.dispose());
     this.free.clear();
     this.disposed = true;
+  }
+
+  /** dispose 后重新启用（StrictMode 重新挂载）。 */
+  reopen(): void {
+    this.disposed = false;
   }
 }

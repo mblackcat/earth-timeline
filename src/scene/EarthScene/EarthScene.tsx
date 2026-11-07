@@ -5,6 +5,7 @@ import { GeographyOutlines } from "../Terrain/GeographyOutlines";
 import { EventMarkers } from "../Living/EventMarkers";
 import { FossilSites } from "../Living/FossilSites";
 import { Herds } from "../Living/Herds/Herds";
+import { HerdAgents } from "../Living/Herds/HerdAgents";
 import { INK } from "../Ink/inkPalette";
 import { ToneSync } from "../Ink/ToneSync";
 import { Globe, GlobeRim } from "./Globe";
@@ -32,6 +33,7 @@ export function EarthScene() {
       {showOutlines && <GeographyOutlines />}
       <FossilSites />
       <Herds />
+      <HerdAgents />
       <EventMarkers />
       <GlobeCameraController />
     </Canvas>
