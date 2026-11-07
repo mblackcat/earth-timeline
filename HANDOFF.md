@@ -1,6 +1,6 @@
 # 接力文档（HANDOFF）
 
-> 最后更新：2026-10-26 · 最后提交见 `git log -1` · 细节打磨 1–3 已合并 main 并发布 v0.2.0
+> 最后更新：2026-11-07 · 最后提交见 `git log -1` · 细节打磨 1–3 已合并 main 并发布 v0.2.0；细节打磨 4（生物群）在分支 `herds` 完成，待合并
 > 下次开工：先读本文 → 按 §6「下一步」从**子项目 4（远景 / 洲视图）**开始（先 brainstorming 设计 → 计划 → 实现）→ 按需查 `TASKS.md`（逐阶段清单、调整记录、测试记录）、`PLAN.md`（产品规范）与 `docs/superpowers/specs/`（各子项目设计稿）。
 
 ---
@@ -71,11 +71,11 @@ UI（React DOM）  components/  TopBar · Help · SettingsPanel(播放/时间轴
 时间（纯 TS）    timeline/    TimeEngine(唯一时间源, 含 smart 模式) pacing(智能倍速扭曲坐标) PlaybackController(rAF)
                               CalendarAdapter TimeScale speeds runtime(单例)
 模拟（纯 TS）    simulation/  VisibilityResolver paleoPositions paleoMorph(板块漂移插值) pacingAnchors abundance(丰度等级, 模型像素)
-                              BehaviorSystem creatureSites
+                              BehaviorSystem scatter(按丰度散布) herdSim(群体行为) herdTraits landGrid promotion
 数据（纯 TS）    data/        schema events species(index + batch1 + batch2) visuals(同) wiki(分类树 + 条目) sources regions
                               geology(timescale, slices, reconstruction)
 场景（R3F）      scene/       EarthScene(Globe 网点海洋 + GlobeRim) CameraController Terrain(GeographyOutlines 逐帧形变)
-                              Living(FossilSites, EventMarkers, GlobeCreatures) Wiki(百科模型展台)
+                              Living(FossilSites, EventMarkers, Herds/(Herds 实例档, HerdAgents 完整档)) Wiki(百科模型展台)
                               Ink(inkPalette, toneMaterial, landMask, useMorphingLandMask 形变遮罩, ToneSync)
                               Models(rig, builders, parts, pose, animation, archetypes/{invertebrates,plants,vertebrates}, useRig) Specimen
 ```
@@ -116,12 +116,12 @@ UI（React DOM）  components/  TopBar · Help · SettingsPanel(播放/时间轴
 
 ### 细节打磨系列（用户 2026-10-19 提出，按顺序，每个子项目单独 设计 → 计划 → 实现）
 
-> **下次会话从第 4 项开始**：先用 brainstorming 与用户确认设计（远景 / 洲视图的散布密度、行为种类、性能预算），写设计稿 → 计划 → 实现。用户原始需求：远景地图看到全貌，动植物微缩成小模型 + 简单 idle，散布密度按考证数据的数量级区分（不要"一片区域一个"）；拉近到洲视图要有更茂密的植物、更丰富的动物与动作（追逐、睡觉等）。可用的基础：`abundanceTier`（1–4 级）、`globeModelPx`、`BehaviorSystem`（idle / wander / eat）、`pickCreatureSites`（目前全局最多 6 个模型，需要改成按丰度的实例化散布）。
+> **下次会话从第 5 项开始**（近地视图）：先 brainstorming 确认设计。子项目 4 已完成（分支 `herds`，见 TASKS §6「细节打磨 4/5」），合并 main 前确认。
 1. ~~智能倍速~~：已完成（`timeline/pacing.ts`，默认"智能 · 约 3 分钟"；见 TASKS §6）。
 2. ~~板块漂移插值~~：已完成（切片 tᵢ 内逐顶点形变到 tᵢ₋₁，`simulation/paleoMorph.ts`、`state/paleoFrame.ts`；数据脚本含板块错配过滤；见 TASKS §6）。
    - **待迭代（用户 2026-10-19 验收反馈）**：能看到带过渡的漂移动画，但①部分区域漂移不对，会直接重叠进其他板块；②有些线框在漂移（轮廓线与陆地不同步或残留游离线段）。可能方向：融合轮廓跨多个板块时逐顶点插值不保形（考虑按板块分组旋转插值，即原方案 B 的思路）；检查低分辨率遮罩与线框的不同步、`rejectStretchedRuns` 之后仍残留的撕裂边；前寒武纪大间隔切片的路径。
 3. ~~物种库扩充 + 比例统一~~：已完成，105 种（见 TASKS §6）。年代以 PBDB / 地层为主，未新增 `[文献]`（子代理查文献因额度中断），关键类群可后续补 Crossref 核对的文献年代。现代分布用 GBIF 地图接口（occurrence/search 会被持续限流，不要用逐页抽样）。
-4. **远景 / 洲视图**（下一步）：远景微缩模型 + idle，散布密度按丰度数量级；洲视图更茂密的植被、追逐 / 睡觉等行为。预计要点：模型改为 `InstancedMesh` 合批（几百到几千个实例），按丰度与视野决定实例数；行为系统扩展状态（chase / flee / sleep）与简单的捕食者—猎物配对；性能在真机上测。
+4. ~~远景 / 洲视图~~：已完成（2026-11-07，`scene/Living/Herds/`、`simulation/scatter.ts`、`herdSim.ts`；远景 ≤ 2000 实例、洲视图 ≤ 150 完整档，真机 60 fps；剩余问题见 TASKS §6）。原始要点：远景微缩模型 + idle，散布密度按丰度数量级；洲视图更茂密的植被、追逐 / 睡觉等行为。预计要点：模型改为 `InstancedMesh` 合批（几百到几千个实例），按丰度与视野决定实例数；行为系统扩展状态（chase / flee / sleep）与简单的捕食者—猎物配对；性能在真机上测。
 5. **近地视图**：从地球连续缩放到离地几百米（推翻"独立观察窗"决策，需处理精度与近平面），房屋、小动植物；点击出现头顶气泡，动物叫声 + 拟声词，人类按地区 + 时代 + 语言说台词（不按"人种"）。
 
 ### 发布

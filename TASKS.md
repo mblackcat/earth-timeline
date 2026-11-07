@@ -556,3 +556,29 @@ TypeScript · React 19 · Vite · Three.js · React Three Fiber + drei · Zustan
 2. 40 Ma 前后（始新世晚期）动物仍偏少，是数据范围所致。
 3. `timeline.spec.ts:47` 的 drei `Html` 卸载告警偶发，未定位根因（事件标记在跳转时卸载）。
 
+
+### 细节打磨 4/5：远景 / 洲视图生物群 — 2026-11-07
+
+设计 `docs/superpowers/specs/2026-11-07-herds-design.md`，计划 `docs/superpowers/plans/2026-11-07-herds.md`（分支 `herds`，子代理逐任务实现 + 审查）。
+
+- **数据**：`Species.diet`（`data/species/diet.ts`，105 种，教科书级共识，依据追加在 evidenceNote "食性："；不明的为 `unknown`，不参与追逐）。
+- **散布**（`simulation/scatter.ts`）：高度 < 4 时每个化石点 / GBIF 观测点按丰度等级散布 1 / 2 / 4 / 8 个个体（洲视图植物 ×3），半径 0.3°–1.2°；第 0 个在点位上；纯海洋 / 纯陆生个体做海陆检查（`simulation/landGrid.ts`，切片轮廓 1° 栅格），点位本身在"错误一侧"时不检查；地平线内按固定哈希抽样，上限 2,000（低性能 1,000），每个可见物种至少 1 个点。
+- **实例档**（`scene/Living/Herds/Herds.tsx`）：每物种烘焙一个合并几何体（`bakeSpecies`），网点面 + 轮廓 2 个 `InstancedMesh`；屏幕尺寸（远景 6–12 px → 洲视图 `globeModelPx`）、背面隐藏、待机动作（植物摇摆、陆生起伏转头、游泳摆尾、飞行浮动）都在顶点着色器；点选走屏幕空间最近点。
+- **完整档**（`HerdAgents.tsx`）：洲视图（< 1.2）最近、≥ 14 px 的动物 ≤ 150 个升为完整 Rig（对象池、0.25 s 缩放过渡、1.1 倍滞回），行为 `simulation/herdSim.ts`：漫游 / 进食 / 睡觉（新 `sleep` 片段：下沉 + 慢呼吸）/ 成群（植食、滤食同点位共享目标）/ 追逐逃跑（肉食 / 杂食，同生境组，体长 0.1–1.5 倍，同时 ≤ 8 组，不表现捕获；古人类不参与）。
+- 移除旧的 `GlobeCreatures` / `creatureSites`（全局 6 个模型）。
+- **实现中修正**：陆地网格测试点落在边界；`0.3 × 3` 浮点；审查发现的追逐结束瞬移、配对距离超出活动范围、陆地网格 3 份副本（90 → 34 ms）；风格切换后实例矩阵未重写；StrictMode 下 Rig 池重复回收与实例属性错位。
+
+**测试命令与结果**
+| 命令 | 结果 |
+|---|---|
+| `npm run typecheck` / `npm run lint` | 通过 |
+| `npm test` | 45 个文件，939 个测试全部通过 |
+| `playwright test e2e/herds.spec.ts` | 通过（远景实例 ≤ 2000、点击实例打开对应物种详情、洲视图完整档 ≤ 150、换时代个体切换） |
+| `playwright test e2e/globe.spec.ts e2e/drift.spec.ts` | 通过；`globe.spec.ts` "收起设置面板" 一项超时放宽到 180 s（软件渲染下生物群使帧率降到 2.5–4 fps，截图等待变长） |
+| 真机 FPS（`scripts/perf-herds.mjs`，本机 Chrome，30 s） | 远景 · 白垩纪 2,000 实例：60.0 fps（1% 低 56.8），29 个 draw call；洲视图 · 北美 150 完整档：60.0（56.5），约 3,400 draw call；智能倍速播放：59.9（56.8）。完整档 300 时为 49.5（29.2），因此上限调为 150 |
+
+**剩余问题**
+1. 海洋物种的化石点在粗分辨率重建海岸线上多落在陆地边缘，沧龙、菊石等常显示在陆地上（沿用"点位在错误一侧时不检查"的规则）。
+2. 个体放在半径 1.004 处，睡觉的下沉不会被地球遮挡，俯视时主要靠低头姿势表现睡觉。
+3. 完整档每只是多 mesh Rig，draw call 随数量线性增长；如需更多完整档个体，需要按物种合批。
+4. 全部 e2e 未跑（只跑了 herds / globe / drift）；软件渲染下其它 spec 也可能变慢。
