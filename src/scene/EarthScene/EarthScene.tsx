@@ -4,7 +4,7 @@ import { GlobeCameraController } from "../CameraController/GlobeCameraController
 import { GeographyOutlines } from "../Terrain/GeographyOutlines";
 import { EventMarkers } from "../Living/EventMarkers";
 import { FossilSites } from "../Living/FossilSites";
-import { GlobeCreatures } from "../Living/GlobeCreatures";
+import { Herds } from "../Living/Herds/Herds";
 import { INK } from "../Ink/inkPalette";
 import { ToneSync } from "../Ink/ToneSync";
 import { Globe, GlobeRim } from "./Globe";
@@ -31,7 +31,7 @@ export function EarthScene() {
       {showGraticule && <Graticule />}
       {showOutlines && <GeographyOutlines />}
       <FossilSites />
-      <GlobeCreatures />
+      <Herds />
       <EventMarkers />
       <GlobeCameraController />
     </Canvas>
