@@ -159,7 +159,7 @@ export type ModelArchetype =
   | "insect"
   | "whale";
 
-export type AnimationClipName = "idle" | "move" | "eat";
+export type AnimationClipName = "idle" | "move" | "eat" | "sleep";
 
 /**
  * 视觉表现（与科学记录分离，PLAN §2.2 / §5.1）。

@@ -19,6 +19,7 @@ export function scale(rig: Rig, name: string, k: number) {
 
 /** 把所有关节恢复到静止姿态。 */
 export function resetPose(rig: Rig) {
+  rig.root.position.y = 0;
   for (const [name, j] of Object.entries(rig.joints)) {
     const r = rig.rest[name]!;
     j.rotation.set(r.x, r.y, r.z);
@@ -28,3 +29,11 @@ export function resetPose(rig: Rig) {
 
 export const S = Math.sin;
 export const breathe = (t: number, rate = 1.6) => 1 + 0.025 * S(t * rate);
+
+/** 整体下沉（体高的比例）：睡觉时让腿没入地面，看起来像趴下。resetPose 会复位。 */
+export function sink(rig: Rig, frac: number) {
+  rig.root.position.y = -frac * rig.height;
+}
+
+/** 睡眠中的深慢呼吸。 */
+export const sleepBreathe = (t: number) => 1 + 0.04 * S(t * 0.8);

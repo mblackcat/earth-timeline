@@ -2,7 +2,7 @@ import { Color, LineSegments, Mesh, MeshLambertMaterial, type Material, type Obj
 import type { VisualizationAsset } from "../../data/schema";
 import { SPECIES } from "../../data/species";
 import { VISUALS, VISUAL_BY_ID } from "../../data/visuals";
-import { applyClip, clipsFor } from "./animation";
+import { applyClip, clipsFor, resetPose } from "./animation";
 import { advanceAnimationClock } from "./animationClock";
 import { ARCHETYPES, buildRig } from "./builders";
 import { INK } from "../Ink/inkPalette";
@@ -108,6 +108,21 @@ describe("procedural models", () => {
 });
 
 describe("animation", () => {
+  const SLEEPERS = ["trilobite", "fish", "quadruped", "theropod", "pterosaur", "hominin", "arthropod", "cephalopod", "sauropod", "marineReptile", "bird", "insect", "whale"];
+
+  it("sleep is implemented for animal archetypes and never for plants or sessile life", () => {
+    for (const a of ARCHETYPES) expect(clipsFor(a).includes("sleep"), a).toBe(SLEEPERS.includes(a));
+  });
+
+  it("sleep sinks the body into the ground and resetPose restores it", () => {
+    const r = buildRig(VISUAL_BY_ID["viz-allosaurus"]!, 1, "tone");
+    applyClip(r, "theropod", "sleep", 1);
+    expect(r.root.position.y).toBeLessThan(0);
+    resetPose(r);
+    expect(r.root.position.y).toBe(0);
+    r.dispose();
+  });
+
   it("clips move joints, are deterministic for a given time and fully reversible", () => {
     const rig = buildRig(VISUAL_BY_ID["viz-tyrannosaurus"]!, 0, "plain");
     const rest = pose(rig);

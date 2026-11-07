@@ -1,6 +1,6 @@
 import type { AnimationClipName } from "../../../data/schema";
 import { limb, lowerLimb, p, tailChain, type Params } from "../parts";
-import { breathe, rot, S, scale, type Pose } from "../pose";
+import { breathe, rot, S, scale, sink, sleepBreathe, type Pose } from "../pose";
 import type { RigBuilder } from "../rig";
 
 /**
@@ -232,6 +232,11 @@ export const VERTEBRATE_CLIPS: Record<"sauropod" | "marineReptile" | "bird" | "i
       rot(r, "jaw", 0.2 + 0.15 * S(t * 2));
       for (let i = 0; i < 3; i++) rot(r, `tail${i}`, 0.08 * S(t - i * 0.6));
     },
+    // 睡觉：缓慢呼吸，尾轻摆
+    sleep: (r, t) => {
+      scale(r, "body", sleepBreathe(t));
+      for (let i = 0; i < 3; i++) rot(r, `tail${i}`, 0.04 * S(t * 0.5 - i * 0.6));
+    },
   },
   sauropod: {
     idle: (r, t, ph) => {
@@ -256,6 +261,14 @@ export const VERTEBRATE_CLIPS: Record<"sauropod" | "marineReptile" | "bird" | "i
       rot(r, "head", 0.2 * S(t * 3));
       tailSway(r, t, 0.06);
     },
+    // 睡觉：伏地，颈低垂
+    sleep: (r, t) => {
+      sink(r, 0.2);
+      scale(r, "body", sleepBreathe(t));
+      rot(r, "neck0", 0.3);
+      rot(r, "neck1", 0.3);
+      rot(r, "head", 0.2);
+    },
   },
   marineReptile: {
     idle: (r, t, ph) => {
@@ -275,6 +288,11 @@ export const VERTEBRATE_CLIPS: Record<"sauropod" | "marineReptile" | "bird" | "i
       rot(r, "jaw", 0.25 + 0.25 * S(t * 6));
       rot(r, "head", 0, 0.15 * S(t * 2));
       tailSway(r, t * 2, 0.15);
+    },
+    // 睡觉：漂浮，尾缓摆
+    sleep: (r, t) => {
+      scale(r, "body", sleepBreathe(t));
+      for (let i = 0; i < 3; i++) rot(r, `tail${i}`, 0, 0.05 * S(t * 0.5 - i * 0.6));
     },
   },
   bird: {
@@ -298,6 +316,13 @@ export const VERTEBRATE_CLIPS: Record<"sauropod" | "marineReptile" | "bird" | "i
       rot(r, "legR", 0.9);
       rot(r, "body", 0.04 * S(t * 6 + 1));
     },
+    // 睡觉：蹲伏，头埋入
+    sleep: (r, t) => {
+      sink(r, 0.15);
+      scale(r, "body", sleepBreathe(t));
+      rot(r, "neck", 0.4);
+      rot(r, "head", 0.5);
+    },
   },
   insect: {
     idle: (r, t, ph) => {
@@ -315,6 +340,10 @@ export const VERTEBRATE_CLIPS: Record<"sauropod" | "marineReptile" | "bird" | "i
         rot(r, `wingR${k}`, 0, 0, -0.5 * f);
       }
       rot(r, "abdomen", 0.06 * S(t * 3));
+    },
+    // 睡觉：腹部轻微起伏
+    sleep: (r, t) => {
+      scale(r, "abdomen", 1 + 0.02 * S(t * 0.8));
     },
   },
 };

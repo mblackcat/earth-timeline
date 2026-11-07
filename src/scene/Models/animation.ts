@@ -2,7 +2,7 @@ import type { AnimationClipName, ModelArchetype } from "../../data/schema";
 import { INVERTEBRATE_CLIPS } from "./archetypes/invertebrates";
 import { PLANT_CLIPS } from "./archetypes/plants";
 import { VERTEBRATE_CLIPS } from "./archetypes/vertebrates";
-import { breathe, resetPose, rot, S, scale, type Pose } from "./pose";
+import { breathe, resetPose, rot, S, scale, sink, sleepBreathe, type Pose } from "./pose";
 import type { Rig } from "./rig";
 
 export { resetPose } from "./pose";
@@ -34,6 +34,12 @@ const CLIPS: Record<ModelArchetype, Partial<Record<AnimationClipName, Pose>>> = 
       rot(r, "antennaL", 0.3 * S(t * 5));
       rot(r, "antennaR", 0.3 * S(t * 5 + 1));
     },
+    // 睡觉：触角收拢，极轻微起伏
+    sleep: (r, t) => {
+      rot(r, "antennaL", 0.25, 0.15, 0);
+      rot(r, "antennaR", 0.25, -0.15, 0);
+      scale(r, "body", 1 + 0.01 * S(t * 0.6));
+    },
   },
   fish: {
     idle: (r, t) => {
@@ -50,6 +56,13 @@ const CLIPS: Record<ModelArchetype, Partial<Record<AnimationClipName, Pose>>> = 
     eat: (r, t) => {
       rot(r, "jaw", 0.35 + 0.3 * S(t * 7));
       rot(r, "tailRoot", 0, 0.15 * S(t * 3));
+    },
+    // 睡觉：悬停，尾鳍与胸鳍缓摆
+    sleep: (r, t) => {
+      rot(r, "tailRoot", 0, 0.05 * S(t * 0.7));
+      rot(r, "tailFin", 0, 0.08 * S(t * 0.7 - 0.8));
+      rot(r, "pectoralL", 0, 0, 0.1 * S(t * 0.9));
+      rot(r, "pectoralR", 0, 0, -0.1 * S(t * 0.9));
     },
   },
   plant: {
@@ -88,6 +101,16 @@ const CLIPS: Record<ModelArchetype, Partial<Record<AnimationClipName, Pose>>> = 
       rot(r, "trunk1", 0.5 * S(t * 2.5 - 0.8));
       for (let i = 0; i < 3; i++) rot(r, `tail${i}`, 0, 0.15 * S(t * 1.5 - i * 0.6));
     },
+    // 睡觉：趴下，头颈与鼻/尾放松
+    sleep: (r, t) => {
+      sink(r, 0.25);
+      scale(r, "body", sleepBreathe(t));
+      rot(r, "neck", 0.6);
+      rot(r, "head", 0.35);
+      for (let i = 0; i < 3; i++) rot(r, `tail${i}`, 0, 0.5);
+      rot(r, "trunk0", 0.8);
+      rot(r, "trunk1", 0.4);
+    },
   },
   theropod: {
     idle: (r, t, ph) => {
@@ -115,6 +138,15 @@ const CLIPS: Record<ModelArchetype, Partial<Record<AnimationClipName, Pose>>> = 
       rot(r, "legR", 0.25);
       for (let i = 0; i < 3; i++) rot(r, `tail${i}`, -0.12, 0.08 * S(t * 1.5 - i));
     },
+    // 睡觉：伏地，头颈低垂
+    sleep: (r, t) => {
+      sink(r, 0.3);
+      scale(r, "body", sleepBreathe(t));
+      rot(r, "body", 0.1);
+      rot(r, "neck", 0.5);
+      rot(r, "head", 0.3);
+      for (let i = 0; i < 3; i++) rot(r, `tail${i}`, -0.1, 0.3);
+    },
   },
   pterosaur: {
     idle: (r, t) => {
@@ -129,6 +161,12 @@ const CLIPS: Record<ModelArchetype, Partial<Record<AnimationClipName, Pose>>> = 
       rot(r, "wingLOuter", 0, 0, 0.3 * S(t * 5 - 0.6));
       rot(r, "wingROuter", 0, 0, -0.3 * S(t * 5 - 0.6));
       rot(r, "body", 0.05 * S(t * 5 + 1));
+    },
+    // 睡觉：栖息，头埋低
+    sleep: (r, t) => {
+      sink(r, 0.1);
+      rot(r, "head", 0.4);
+      rot(r, "body", 0.02 * S(t * 0.8));
     },
   },
   hominin: {
@@ -157,6 +195,17 @@ const CLIPS: Record<ModelArchetype, Partial<Record<AnimationClipName, Pose>>> = 
       rot(r, "armR", -1.2 - 0.25 * S(t * 3), 0, -0.1);
       rot(r, "armRLower", -1.4);
       rot(r, "head", 0.2 + 0.1 * S(t * 3));
+    },
+    // 睡觉：蹲坐（沿用 eat 中已验证的屈膝角度）
+    sleep: (r, t) => {
+      sink(r, 0.2);
+      scale(r, "torso", sleepBreathe(t));
+      rot(r, "torso", 0.25);
+      rot(r, "legL", -0.9);
+      rot(r, "legR", -0.9);
+      rot(r, "legLLower", 1.4);
+      rot(r, "legRLower", 1.4);
+      rot(r, "head", 0.35);
     },
   },
   ...INVERTEBRATE_CLIPS,

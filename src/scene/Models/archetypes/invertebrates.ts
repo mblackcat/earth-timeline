@@ -1,6 +1,6 @@
 import type { AnimationClipName } from "../../../data/schema";
 import { p, type Params } from "../parts";
-import { rot, S, scale, type Pose } from "../pose";
+import { rot, S, scale, sleepBreathe, type Pose } from "../pose";
 import type { RigBuilder } from "../rig";
 
 /**
@@ -229,6 +229,14 @@ export const INVERTEBRATE_CLIPS: Record<"arthropod" | "sessile" | "cephalopod", 
       rot(r, "antennaL", 0.3 * S(t * 5));
       rot(r, "antennaR", 0.3 * S(t * 5 + 1));
     },
+    // 睡觉：触角与钳收拢
+    sleep: (r, t) => {
+      scale(r, "body", 1 + 0.01 * S(t * 0.6));
+      rot(r, "antennaL", 0.3);
+      rot(r, "antennaR", 0.3);
+      rot(r, "graspL", 0.2);
+      rot(r, "graspR", 0.2);
+    },
   },
   sessile: {
     idle: (r, t, ph) => {
@@ -249,6 +257,11 @@ export const INVERTEBRATE_CLIPS: Record<"arthropod" | "sessile" | "cephalopod", 
       scale(r, "body", 1 + 0.04 * S(t * 4));
       rot(r, "body", 0.04 * S(t * 4 + 1));
       tentacles(r, t * 2, 0.08, ph);
+    },
+    // 睡觉：缓慢呼吸，腕轻摆
+    sleep: (r, t) => {
+      scale(r, "body", sleepBreathe(t));
+      for (let i = 0; i < 10; i++) rot(r, `tentacle${i}`, 0.05 * S(t * 0.5 + i));
     },
   },
 };

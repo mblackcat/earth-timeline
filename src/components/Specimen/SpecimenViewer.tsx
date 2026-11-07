@@ -10,7 +10,7 @@ import type { Lod } from "../../scene/Models/rig";
 import { SpecimenScene, type ClipMode } from "../../scene/Specimen/SpecimenScene";
 import { formatYearsSpan } from "../../timeline/CalendarAdapter";
 
-const CLIP_LABELS: Record<AnimationClipName, string> = { idle: "Idle", move: "移动", eat: "进食" };
+const CLIP_LABELS: Record<AnimationClipName, string> = { idle: "Idle", move: "移动", eat: "进食", sleep: "睡觉" };
 const STYLE_LABELS: Record<VisualStyle, string> = { line: "线稿", tone: "线稿+网点", plain: "白模" };
 
 function formatSize(m: number): string {
