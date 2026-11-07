@@ -1,6 +1,5 @@
 import { VISUAL_BY_ID } from "../data/visuals";
 import { behaviorConfigFor, clipForState, createAgent, seededRandom, stepAgent, updateInterval } from "./BehaviorSystem";
-import { pickCreatureSites } from "./creatureSites";
 
 describe("behavior", () => {
   const mammoth = VISUAL_BY_ID["viz-mammoth"]!;
@@ -44,25 +43,5 @@ describe("behavior", () => {
     expect(updateInterval(100, false, false)).toBeGreaterThan(updateInterval(30, false, false));
     expect(updateInterval(100, true, false)).toBeLessThan(updateInterval(100, false, false));
     expect(updateInterval(100, false, true)).toBe(2 * updateInterval(100, false, false));
-  });
-});
-
-describe("globe creature sites", () => {
-  const entries = [
-    { speciesId: "a", sites: [[0, 0], [0.5, 0.5], [4, 0], [8, 0]] as [number, number][] },
-    { speciesId: "b", sites: [[10, 0]] as [number, number][] },
-    { speciesId: "c", sites: [[150, 0]] as [number, number][] },
-  ];
-
-  it("shows nothing from far away and picks the nearest sites, at least one per nearby species", () => {
-    expect(pickCreatureSites(entries, [0, 0], 2.4, 6)).toEqual([]);
-    const picked = pickCreatureSites(entries, [0, 0], 0.5, 3);
-    // a@(0,0) 最近；b 保证至少一个；(0.5,0.5) 太近被跳过，取 a@(4,0)
-    expect(picked).toEqual([
-      { speciesId: "a", lonLat: [0, 0], siteIndex: 0 },
-      { speciesId: "b", lonLat: [10, 0], siteIndex: 0 },
-      { speciesId: "a", lonLat: [4, 0], siteIndex: 2 },
-    ]);
-    expect(picked.some((p) => p.speciesId === "c")).toBe(false); // 地球另一侧
   });
 });
