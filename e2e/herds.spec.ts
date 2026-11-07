@@ -39,7 +39,7 @@ test("herds: far-view instances, click to details, continental agents, era switc
   // 洲视图：出现完整档，不超过 300
   await page.evaluate(() => (window as unknown as W).__herds.focus(-105, 45, 0.5));
   await expect.poll(async () => (await stats(page)).agents, { timeout: 20_000 }).toBeGreaterThan(0);
-  expect((await stats(page)).agents).toBeLessThanOrEqual(300);
+  expect((await stats(page)).agents).toBeLessThanOrEqual(150);
 
   // 换时代：个体集合切换
   await seek(page, 30e6);

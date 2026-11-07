@@ -23,5 +23,7 @@ export const herdRuntime = {
   /** promoted 每次变化加 1。 */
   version: 0,
   agents: 0,
+  /** 完整档上限（低性能模式减半）。 */
+  promoteMax: 150,
   chases: 0,
 };

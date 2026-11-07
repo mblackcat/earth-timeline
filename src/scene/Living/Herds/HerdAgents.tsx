@@ -30,7 +30,6 @@ import { surfaceQuaternion } from "./surfaceFrame";
  * props / useMemo 返回的对象（同 Herds.tsx 的 tickHerd）。
  */
 
-const PROMOTE = { max: 300, keep: 330 };
 const MIN_PX = 14;
 const APPEAR_S = 0.25;
 const RECHECK_S = 0.5;
@@ -57,8 +56,8 @@ function promotionCandidates(): string[] {
 /** 按候选更新条目；返回是否新增了条目（需要重新渲染）。 */
 function syncEntries(map: Map<string, Entry>, sorted: string[], low: boolean, rand: () => number): boolean {
   const current = new Set([...map.values()].filter((e) => !e.leaving).map((e) => e.key));
-  const max = low ? PROMOTE.max / 2 : PROMOTE.max;
-  const keep = low ? PROMOTE.keep / 2 : PROMOTE.keep;
+  const max = Math.round(low ? herdRuntime.promoteMax / 2 : herdRuntime.promoteMax);
+  const keep = Math.round(max * 1.1);
   const next = choosePromoted(sorted, current, max, keep);
   for (const e of map.values()) if (!next.has(e.key)) e.leaving = true;
   let added = false;

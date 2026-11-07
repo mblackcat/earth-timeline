@@ -225,8 +225,13 @@ function useHerdDebugHandle() {
         instances: herdRuntime.placed.size,
         agents: herdRuntime.agents,
         chases: herdRuntime.chases,
+        drawCalls: gl.info.render.calls,
+        altitude: useViewStore.getState().altitude,
         species: [...new Set([...herdRuntime.placed.values()].map((p) => p.speciesId))].sort().join(","),
       }),
+      setPromoteMax: (n: number) => {
+        herdRuntime.promoteMax = n;
+      },
       focus: (lon: number, lat: number, altitude: number) => useViewStore.getState().requestCamera("focus", { lon, lat, altitude }),
       /** 离画面中心最近、未升档的个体的点击位置（客户端坐标）。 */
       pickPoint: () => {
