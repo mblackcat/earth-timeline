@@ -1,6 +1,7 @@
 import sitesRaw from "../../../public/data/species/pbdb-sites.json?raw";
 import rangesRaw from "../../../public/data/species/gbif-ranges.json?raw";
 import { GBIF_NAMES, PBDB_NAMES, SPECIES } from "./index";
+import { DIET } from "./diet";
 import { SOURCES } from "../sources";
 import { GEO_UNITS } from "../geology/timescale";
 import { VISUAL_BY_ID } from "../visuals";
@@ -10,6 +11,14 @@ import type { FossilSitesFile, ModernRangesFile } from "../schema";
 const sitesFile = JSON.parse(sitesRaw) as FossilSitesFile;
 
 describe("representative species (PLAN §5.3)", () => {
+  it("every species has a diet with a stated basis (herd behavior)", () => {
+    expect(Object.keys(DIET).sort()).toEqual(SPECIES.map((s) => s.id).sort());
+    for (const s of SPECIES) {
+      expect(s.diet, s.id).toBeDefined();
+      expect(s.evidenceNote, s.id).toMatch(/食性：\S/);
+    }
+  });
+
   it.each(SPECIES.map((s) => [s.id, s] as const))("%s is well-formed and sourced", (_id, s) => {
     expect(s.time.fromYearsAgo).toBeGreaterThan(s.time.toYearsAgo - 1e-9);
     expect(s.time.toYearsAgo).toBeGreaterThanOrEqual(0);

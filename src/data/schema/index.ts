@@ -71,6 +71,9 @@ export interface HistoricalEvent {
 
 export type HabitatId = "marine" | "freshwater" | "coastal" | "terrestrial" | "forest" | "steppe" | "wetland";
 
+/** 食性（地球上的成群 / 追逐行为用，只作示意）。unknown：取食方式不明，不参与追逐。 */
+export type Diet = "carnivore" | "herbivore" | "omnivore" | "filter" | "detritivore" | "autotroph" | "unknown";
+
 export interface Species {
   id: string;
   /** 学名；高级分类单元（如三叶虫纲）也可作为代表性类群。 */
@@ -83,6 +86,8 @@ export interface Species {
   time: TimeRange;
   taxonomy?: { kingdom?: string; class?: string; order?: string; family?: string };
   habitatIds: HabitatId[];
+  /** 由 data/species/diet.ts 合并；依据追加在 evidenceNote 末尾。 */
+  diet?: Diet;
   distribution: SpatialExtent[];
   /** Phase 6 接入低多边形模型后填写。 */
   visualizationId?: string;

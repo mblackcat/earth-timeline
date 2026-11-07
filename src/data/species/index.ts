@@ -1,4 +1,5 @@
 import { calBpToYearsAgo, maToYearsAgo, type HabitatId, type Species, type TimeRange } from "../schema";
+import { withDiet } from "./diet";
 import { PBDB_NAMES_BATCH1, SPECIES_BATCH1 } from "./batch1";
 import { PBDB_NAMES_BATCH2, SPECIES_BATCH2 } from "./batch2";
 
@@ -54,7 +55,7 @@ export const PBDB_NAMES: Record<string, string> = {
   ...PBDB_NAMES_BATCH2,
 };
 
-export const SPECIES: Species[] = [
+const BASE_SPECIES: Species[] = [
   {
     id: "trilobita",
     visualizationId: "viz-trilobite",
@@ -254,5 +255,8 @@ export const SPECIES: Species[] = [
   ...SPECIES_BATCH1,
   ...SPECIES_BATCH2,
 ];
+
+/** 合并食性（data/species/diet.ts）。 */
+export const SPECIES: Species[] = BASE_SPECIES.map(withDiet);
 
 export const SPECIES_BY_ID: Record<string, Species> = Object.fromEntries(SPECIES.map((s) => [s.id, s]));
